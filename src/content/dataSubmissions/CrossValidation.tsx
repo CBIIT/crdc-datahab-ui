@@ -290,7 +290,10 @@ const CrossValidation: FC = () => {
           defaultOrder="desc"
           position="both"
           noContentText="No cross-validation issues found"
-          AdditionalActions={Actions}
+          AdditionalActions={{
+            top: { after: Actions },
+            bottom: { after: Actions },
+          }}
           setItemKey={(item, idx) => `${idx}_${item.batchID}_${item.submittedID}`}
           onFetchData={handleFetchData}
           containerProps={{ sx: { marginBottom: "8px" } }}

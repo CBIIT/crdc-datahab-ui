@@ -31,3 +31,12 @@ type TableState<T> = {
 type FilterFunction<T> = (item: T) => boolean;
 
 type ColumnVisibilityModel = { [key: string]: boolean };
+
+type VerticalPlacement = "top" | "bottom";
+
+type AdditionalActions = {
+  before?: React.ReactNode;
+  after?: React.ReactNode;
+};
+
+type AdditionalActionsConfig = Partial<Record<VerticalPlacement, AdditionalActions>>;

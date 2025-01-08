@@ -461,7 +461,10 @@ const SubmittedData: FC = () => {
           defaultRowsPerPage={20}
           defaultOrder="desc"
           position="both"
-          AdditionalActions={Actions}
+          AdditionalActions={{
+            top: { after: Actions },
+            bottom: { after: Actions },
+          }}
           setItemKey={(item, idx) => `${idx}_${item.nodeID}`}
           onFetchData={handleFetchData}
           containerProps={{ sx: { marginBottom: "8px" } }}

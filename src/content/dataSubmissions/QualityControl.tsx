@@ -1,30 +1,29 @@
-import React, { FC, useEffect, useMemo, useRef, useState } from "react";
-import { useLazyQuery, useQuery } from "@apollo/client";
-import { cloneDeep, isEqual } from "lodash";
-import { Box, Button, FormControl, MenuItem, Stack, styled } from "@mui/material";
-import { Controller, useForm } from "react-hook-form";
+import React, { FC, MutableRefObject, useEffect, useMemo, useRef, useState } from "react";
+import { isEqual } from "lodash";
+import { Box, Button, Stack, styled } from "@mui/material";
 import { useSnackbar } from "notistack";
-import {
-  LIST_BATCHES,
-  ListBatchesInput,
-  ListBatchesResp,
-  SUBMISSION_QC_RESULTS,
-  SUBMISSION_STATS,
-  SubmissionQCResultsResp,
-  SubmissionStatsInput,
-  SubmissionStatsResp,
-} from "../../graphql";
+import { useLazyQuery } from "@apollo/client";
 import GenericTable, { Column } from "../../components/GenericTable";
-import { FormatDate, compareNodeStats, titleCase } from "../../utils";
+import { FormatDate, Logger, titleCase } from "../../utils";
 import ErrorDetailsDialog from "../../components/ErrorDetailsDialog";
 import QCResultsContext from "./Contexts/QCResultsContext";
 import { ExportValidationButton } from "../../components/DataSubmissions/ExportValidationButton";
-import StyledSelect from "../../components/StyledFormComponents/StyledSelect";
 import { useSubmissionContext } from "../../components/Contexts/SubmissionContext";
 import StyledTooltip from "../../components/StyledFormComponents/StyledTooltip";
 import TruncatedText from "../../components/TruncatedText";
+import DoubleLabelSwitch from "../../components/DoubleLabelSwitch";
+import {
+  AGGREGATED_SUBMISSION_QC_RESULTS,
+  SUBMISSION_QC_RESULTS,
+  AggregatedSubmissionQCResultsInput,
+  AggregatedSubmissionQCResultsResp,
+  SubmissionQCResultsInput,
+  SubmissionQCResultsResp,
+} from "../../graphql";
+import QualityControlFilters from "../../components/DataSubmissions/QualityControlFilters";
 
 type FilterForm = {
+  issueType: string;
   /**
    * The node type to filter by.
    *
@@ -67,29 +66,6 @@ const StyledBreakAll = styled(Box)({
   wordBreak: "break-all",
 });
 
-const StyledFilterContainer = styled(Box)({
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "space-between",
-  marginBottom: "21px",
-  paddingLeft: "26px",
-  paddingRight: "35px",
-});
-
-const StyledFormControl = styled(FormControl)({
-  minWidth: "231px",
-});
-
-const StyledInlineLabel = styled("label")({
-  color: "#083A50",
-  fontFamily: "'Nunito', 'Rubik', sans-serif",
-  fontWeight: 700,
-  fontSize: "16px",
-  fontStyle: "normal",
-  lineHeight: "19.6px",
-  paddingRight: "10px",
-});
-
 const StyledIssuesTextWrapper = styled(Box)({
   whiteSpace: "nowrap",
   wordBreak: "break-word",
@@ -99,15 +75,57 @@ const StyledDateTooltip = styled(StyledTooltip)(() => ({
   cursor: "pointer",
 }));
 
-type TouchedState = { [K in keyof FilterForm]: boolean };
+type RowData = QCResult | AggregatedQCResult;
 
-const initialTouchedFields: TouchedState = {
-  nodeType: false,
-  batchID: false,
-  severity: false,
-};
+const aggregatedColumns: Column<AggregatedQCResult>[] = [
+  {
+    label: "Issue Type",
+    renderValue: (data) => <TruncatedText text={data.title} maxCharacters={50} />,
+    field: "title",
+  },
+  {
+    label: "Severity",
+    renderValue: (data) => (
+      <StyledSeverity color={data?.severity === "Error" ? "#B54717" : "#8D5809"}>
+        {data?.severity}
+      </StyledSeverity>
+    ),
+    field: "severity",
+  },
+  {
+    label: "Count",
+    renderValue: (data) =>
+      Intl.NumberFormat("en-US", { maximumFractionDigits: 0 }).format(data.count || 0),
+    field: "count",
+    default: true,
+  },
+  {
+    label: "Expand",
+    renderValue: (data) => (
+      <QCResultsContext.Consumer>
+        {({ handleExpandClick }) => (
+          <StyledErrorDetailsButton
+            onClick={() => handleExpandClick?.(data)}
+            variant="text"
+            disableRipple
+            disableTouchRipple
+            disableFocusRipple
+          >
+            Expand
+          </StyledErrorDetailsButton>
+        )}
+      </QCResultsContext.Consumer>
+    ),
+    fieldKey: "expand",
+    sortDisabled: true,
+    sx: {
+      width: "104px",
+      textAlign: "center",
+    },
+  },
+];
 
-const columns: Column<QCResult>[] = [
+const expandedColumns: Column<QCResult>[] = [
   {
     label: "Batch ID",
     renderValue: (data) => <StyledBreakAll>{data?.displayID}</StyledBreakAll>,
@@ -216,16 +234,15 @@ export const csvColumns = {
   },
 };
 
+export const aggregatedCSVColumns = {
+  "Issue Type": (d: AggregatedQCResult) => d.title,
+  Severity: (d: AggregatedQCResult) => d.severity,
+  Count: (d: AggregatedQCResult) => d.count,
+};
+
 const QualityControl: FC = () => {
   const { enqueueSnackbar } = useSnackbar();
   const { data: submissionData } = useSubmissionContext();
-  const { watch, control } = useForm<FilterForm>({
-    defaultValues: {
-      batchID: "All",
-      nodeType: "All",
-      severity: "All",
-    },
-  });
   const {
     _id: submissionId,
     metadataValidationStatus,
@@ -233,67 +250,65 @@ const QualityControl: FC = () => {
   } = submissionData?.getSubmission || {};
 
   const [loading, setLoading] = useState<boolean>(false);
-  const [data, setData] = useState<QCResult[]>([]);
-  const [prevData, setPrevData] = useState<FetchListing<QCResult>>(null);
+  const [data, setData] = useState<RowData[]>([]);
+  const [prevData, setPrevData] = useState<FetchListing<RowData>>(null);
   const [totalData, setTotalData] = useState(0);
   const [openErrorDialog, setOpenErrorDialog] = useState<boolean>(false);
-  const [selectedRow, setSelectedRow] = useState<QCResult | null>(null);
-  const [touchedFilters, setTouchedFilters] = useState<TouchedState>(initialTouchedFields);
-  const nodeTypeFilter = watch("nodeType");
-  const batchIDFilter = watch("batchID");
-  const severityFilter = watch("severity");
+  const [selectedRow, setSelectedRow] = useState<RowData | null>(null);
+  const [isAggregated, setIsAggregated] = useState<boolean>(true);
+  const [issueType, setIssueType] = useState<string | null>(null);
+  const filtersRef: MutableRefObject<FilterForm> = useRef({
+    issueType: "All",
+    batchID: "All",
+    nodeType: "All",
+    severity: "All",
+  });
   const tableRef = useRef<TableMethods>(null);
 
-  const errorDescriptions =
-    selectedRow?.errors?.map((error) => `(Error) ${error.description}`) ?? [];
-  const warningDescriptions =
-    selectedRow?.warnings?.map((warning) => `(Warning) ${warning.description}`) ?? [];
-  const allDescriptions = [...errorDescriptions, ...warningDescriptions];
+  const errorDescriptions = useMemo(() => {
+    if (selectedRow && "errors" in selectedRow) {
+      return selectedRow.errors?.map((error) => `(Error) ${error.description}`) ?? [];
+    }
+    return [];
+  }, [selectedRow]);
 
-  const [submissionQCResults] = useLazyQuery<SubmissionQCResultsResp>(SUBMISSION_QC_RESULTS, {
-    variables: { id: submissionId },
-    context: { clientName: "backend" },
-    fetchPolicy: "cache-and-network",
-  });
+  const warningDescriptions = useMemo(() => {
+    if (selectedRow && "warnings" in selectedRow) {
+      return (
+        (selectedRow as QCResult).warnings?.map((warning) => `(Warning) ${warning.description}`) ??
+        []
+      );
+    }
+    return [];
+  }, [selectedRow]);
 
-  const { data: batchData } = useQuery<ListBatchesResp<true>, ListBatchesInput>(LIST_BATCHES, {
-    variables: {
-      submissionID: submissionId,
-      first: -1,
-      offset: 0,
-      partial: true,
-      orderBy: "displayID",
-      sortDirection: "asc",
-    },
-    context: { clientName: "backend" },
-    skip: !submissionId,
-    fetchPolicy: "cache-and-network",
-  });
+  const allDescriptions = useMemo(
+    () => [...errorDescriptions, ...warningDescriptions],
+    [errorDescriptions, warningDescriptions]
+  );
 
-  const { data: submissionStats } = useQuery<SubmissionStatsResp, SubmissionStatsInput>(
-    SUBMISSION_STATS,
+  const [submissionQCResults] = useLazyQuery<SubmissionQCResultsResp, SubmissionQCResultsInput>(
+    SUBMISSION_QC_RESULTS,
     {
-      variables: { id: submissionId },
       context: { clientName: "backend" },
-      skip: !submissionId,
       fetchPolicy: "cache-and-network",
     }
   );
 
-  const nodeTypes = useMemo<string[]>(
-    () =>
-      cloneDeep(submissionStats?.submissionStats?.stats)
-        ?.filter((stat) => stat.error > 0 || stat.warning > 0)
-        ?.sort(compareNodeStats)
-        ?.map((stat) => stat.nodeName),
-    [submissionStats?.submissionStats?.stats]
-  );
+  const [aggregatedSubmissionQCResults] = useLazyQuery<
+    AggregatedSubmissionQCResultsResp,
+    AggregatedSubmissionQCResultsInput
+  >(AGGREGATED_SUBMISSION_QC_RESULTS, {
+    context: { clientName: "backend" },
+    fetchPolicy: "cache-and-network",
+  });
+
+  useEffect(() => {
+    tableRef.current?.refresh();
+  }, [metadataValidationStatus, fileValidationStatus]);
 
   const handleFetchQCResults = async (fetchListing: FetchListing<QCResult>, force: boolean) => {
     const { first, offset, sortDirection, orderBy } = fetchListing || {};
-    if (!submissionId) {
-      return;
-    }
     if (!force && data?.length > 0 && isEqual(fetchListing, prevData)) {
       return;
     }
@@ -305,14 +320,24 @@ const QualityControl: FC = () => {
 
       const { data: d, error } = await submissionQCResults({
         variables: {
-          submissionID: submissionId,
+          id: submissionId,
           first,
           offset,
           sortDirection,
           orderBy,
-          nodeTypes: !nodeTypeFilter || nodeTypeFilter === "All" ? undefined : [nodeTypeFilter],
-          batchIDs: !batchIDFilter || batchIDFilter === "All" ? undefined : [batchIDFilter],
-          severities: watch("severity") || "All",
+          issueCode:
+            !filtersRef.current.issueType || filtersRef.current.issueType === "All"
+              ? undefined
+              : filtersRef.current.issueType,
+          nodeTypes:
+            !filtersRef.current.nodeType || filtersRef.current.nodeType === "All"
+              ? undefined
+              : [filtersRef.current.nodeType],
+          batchIDs:
+            !filtersRef.current.batchID || filtersRef.current.batchID === "All"
+              ? undefined
+              : [filtersRef.current.batchID],
+          severities: filtersRef.current.severity || "All",
         },
         context: { clientName: "backend" },
         fetchPolicy: "no-cache",
@@ -329,13 +354,59 @@ const QualityControl: FC = () => {
     }
   };
 
+  const handleFetchAggQCResults = async (
+    fetchListing: FetchListing<AggregatedQCResult>,
+    force: boolean
+  ) => {
+    const { first, offset, sortDirection, orderBy } = fetchListing || {};
+
+    if (!force && data?.length > 0 && isEqual(fetchListing, prevData)) {
+      return;
+    }
+
+    setPrevData(fetchListing);
+
+    try {
+      setLoading(true);
+
+      const { data: d, error } = await aggregatedSubmissionQCResults({
+        variables: {
+          submissionID: submissionId,
+          severity: filtersRef.current.severity?.toLowerCase() || "all",
+          first,
+          offset,
+          sortDirection,
+          orderBy,
+        },
+        context: { clientName: "backend" },
+        fetchPolicy: "no-cache",
+      });
+      if (error || !d?.aggregatedSubmissionQCResults) {
+        throw new Error("Unable to retrieve submission aggregated quality control results.");
+      }
+      setData(d.aggregatedSubmissionQCResults.results);
+      setTotalData(d.aggregatedSubmissionQCResults.total);
+    } catch (err) {
+      Logger.error(`QualityControl: ${err?.toString()}`);
+      enqueueSnackbar(err?.toString(), { variant: "error" });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleFetchData = (fetchListing: FetchListing<RowData>, force: boolean) => {
+    if (!submissionId || !filtersRef.current) {
+      return;
+    }
+
+    isAggregated
+      ? handleFetchAggQCResults(fetchListing, force)
+      : handleFetchQCResults(fetchListing, force);
+  };
+
   const handleOpenErrorDialog = (data: QCResult) => {
     setOpenErrorDialog(true);
     setSelectedRow(data);
-  };
-
-  const handleFilterChange = (field: keyof FilterForm) => {
-    setTouchedFilters((prev) => ({ ...prev, [field]: true }));
   };
 
   const Actions = useMemo<React.ReactNode>(
@@ -343,127 +414,62 @@ const QualityControl: FC = () => {
       <Stack direction="row" alignItems="center" gap="8px" marginRight="37px">
         <ExportValidationButton
           submission={submissionData?.getSubmission}
-          fields={csvColumns}
+          fields={isAggregated ? aggregatedCSVColumns : csvColumns}
+          isAggregated={isAggregated}
           disabled={totalData <= 0}
         />
       </Stack>
     ),
-    [submissionData?.getSubmission, totalData]
+    [submissionData?.getSubmission, totalData, isAggregated]
   );
+
+  const handleOnFiltersChange = (data: FilterForm) => {
+    filtersRef.current = data;
+    tableRef.current?.setPage(0, true);
+  };
+
+  const onSwitchToggle = () => {
+    setData([]);
+    setPrevData(null);
+    setTotalData(0);
+    setIsAggregated((prev) => !prev);
+  };
+
+  const currentColumns = useMemo(
+    () => (isAggregated ? aggregatedColumns : expandedColumns),
+    [isAggregated]
+  ) as Column<RowData>[];
+
+  const handleExpandClick = (issue: AggregatedQCResult) => {
+    if (!issue?.code) {
+      Logger.error("QualityControl: Unable to expand invalid issue.");
+      return;
+    }
+
+    setIssueType(issue?.code);
+    setIsAggregated(false);
+  };
 
   const providerValue = useMemo(
     () => ({
       handleOpenErrorDialog,
+      handleExpandClick,
     }),
-    [handleOpenErrorDialog]
+    [handleOpenErrorDialog, handleExpandClick]
   );
-
-  useEffect(() => {
-    if (!touchedFilters.nodeType && !touchedFilters.batchID && !touchedFilters.severity) {
-      return;
-    }
-    tableRef.current?.setPage(0, true);
-  }, [nodeTypeFilter, batchIDFilter, severityFilter]);
-
-  useEffect(() => {
-    tableRef.current?.refresh();
-  }, [metadataValidationStatus, fileValidationStatus]);
 
   return (
     <>
-      <StyledFilterContainer>
-        <Stack direction="row" justifyContent="flex-start" alignItems="center">
-          <StyledInlineLabel htmlFor="batchID-filter">Batch ID</StyledInlineLabel>
-          <StyledFormControl>
-            <Controller
-              name="batchID"
-              control={control}
-              render={({ field }) => (
-                <StyledSelect
-                  {...field}
-                  /* zIndex has to be higher than the SuspenseLoader to avoid cropping */
-                  MenuProps={{ disablePortal: true, sx: { zIndex: 99999 } }}
-                  inputProps={{ id: "batchID-filter" }}
-                  data-testid="quality-control-batchID-filter"
-                  onChange={(e) => {
-                    field.onChange(e);
-                    handleFilterChange("batchID");
-                  }}
-                >
-                  <MenuItem value="All">All</MenuItem>
-                  {batchData?.listBatches?.batches?.map((batch) => (
-                    <MenuItem key={batch._id} value={batch._id} data-testid={batch._id}>
-                      {batch.displayID}
-                      {` (${FormatDate(batch.createdAt, "MM/DD/YYYY")})`}
-                    </MenuItem>
-                  ))}
-                </StyledSelect>
-              )}
-            />
-          </StyledFormControl>
-        </Stack>
+      <QualityControlFilters
+        onChange={handleOnFiltersChange}
+        issueType={issueType}
+        isAggregated={isAggregated}
+      />
 
-        <Stack direction="row" justifyContent="flex-start" alignItems="center">
-          <StyledInlineLabel htmlFor="nodeType-filter">Node Type</StyledInlineLabel>
-          <StyledFormControl>
-            <Controller
-              name="nodeType"
-              control={control}
-              render={({ field }) => (
-                <StyledSelect
-                  {...field}
-                  /* zIndex has to be higher than the SuspenseLoader to avoid cropping */
-                  MenuProps={{ disablePortal: true, sx: { zIndex: 99999 } }}
-                  inputProps={{ id: "nodeType-filter" }}
-                  data-testid="quality-control-nodeType-filter"
-                  onChange={(e) => {
-                    field.onChange(e);
-                    handleFilterChange("nodeType");
-                  }}
-                >
-                  <MenuItem value="All">All</MenuItem>
-                  {nodeTypes?.map((nodeType) => (
-                    <MenuItem key={nodeType} value={nodeType} data-testid={`nodeType-${nodeType}`}>
-                      {nodeType.toLowerCase()}
-                    </MenuItem>
-                  ))}
-                </StyledSelect>
-              )}
-            />
-          </StyledFormControl>
-        </Stack>
-
-        <Stack direction="row" justifyContent="flex-start" alignItems="center">
-          <StyledInlineLabel htmlFor="severity-filter">Severity</StyledInlineLabel>
-          <StyledFormControl>
-            <Controller
-              name="severity"
-              control={control}
-              render={({ field }) => (
-                <StyledSelect
-                  {...field}
-                  /* zIndex has to be higher than the SuspenseLoader to avoid cropping */
-                  MenuProps={{ disablePortal: true, sx: { zIndex: 99999 } }}
-                  inputProps={{ id: "severity-filter" }}
-                  data-testid="quality-control-severity-filter"
-                  onChange={(e) => {
-                    field.onChange(e);
-                    handleFilterChange("severity");
-                  }}
-                >
-                  <MenuItem value="All">All</MenuItem>
-                  <MenuItem value="Error">Error</MenuItem>
-                  <MenuItem value="Warning">Warning</MenuItem>
-                </StyledSelect>
-              )}
-            />
-          </StyledFormControl>
-        </Stack>
-      </StyledFilterContainer>
       <QCResultsContext.Provider value={providerValue}>
         <GenericTable
           ref={tableRef}
-          columns={columns}
+          columns={currentColumns}
           data={data || []}
           total={totalData || 0}
           loading={loading}
@@ -471,25 +477,45 @@ const QualityControl: FC = () => {
           defaultOrder="desc"
           position="both"
           noContentText="No validation issues found. Either no validation has been conducted yet, or all issues have been resolved."
-          setItemKey={(item, idx) => `${idx}_${item.batchID}_${item.submittedID}`}
-          onFetchData={handleFetchQCResults}
-          AdditionalActions={Actions}
+          setItemKey={(item, idx) => `${idx}_${"title" in item ? item?.title : item?.batchID}`}
+          onFetchData={handleFetchData}
+          AdditionalActions={{
+            top: {
+              before: (
+                <DoubleLabelSwitch
+                  leftLabel="Aggregated"
+                  rightLabel="Expanded"
+                  id="table-state-switch"
+                  data-testid="table-view-switch"
+                  checked={!isAggregated}
+                  onChange={onSwitchToggle}
+                  inputProps={{ "aria-label": "Aggregated or Expanded table view switch" }}
+                />
+              ),
+              after: Actions,
+            },
+            bottom: {
+              after: Actions,
+            },
+          }}
           containerProps={{ sx: { marginBottom: "8px" } }}
         />
       </QCResultsContext.Provider>
-      <ErrorDetailsDialog
-        open={openErrorDialog}
-        onClose={() => setOpenErrorDialog(false)}
-        header={null}
-        title="Validation Issues"
-        nodeInfo={`For ${titleCase(selectedRow?.type)}${
-          selectedRow?.type?.toLocaleLowerCase() !== "data file" ? " Node" : ""
-        } ID ${selectedRow?.submittedID}`}
-        errors={allDescriptions}
-        errorCount={`${allDescriptions?.length || 0} ${
-          allDescriptions?.length === 1 ? "ISSUE" : "ISSUES"
-        }`}
-      />
+      {!isAggregated && (
+        <ErrorDetailsDialog
+          open={openErrorDialog}
+          onClose={() => setOpenErrorDialog(false)}
+          header={null}
+          title="Validation Issues"
+          nodeInfo={`For ${titleCase((selectedRow as QCResult)?.type)}${
+            (selectedRow as QCResult)?.type?.toLocaleLowerCase() !== "data file" ? " Node" : ""
+          } ID ${(selectedRow as QCResult)?.submittedID}`}
+          errors={allDescriptions}
+          errorCount={`${allDescriptions?.length || 0} ${
+            allDescriptions?.length === 1 ? "ISSUE" : "ISSUES"
+          }`}
+        />
+      )}
     </>
   );
 };

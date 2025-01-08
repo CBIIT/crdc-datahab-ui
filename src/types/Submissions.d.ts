@@ -206,6 +206,13 @@ type RecordParentNode = {
   parentIDValue: string; // Value for above ID property, e.g. "CDS-study-007"
 };
 
+type AggregatedQCResult = {
+  code: string;
+  severity: "Error" | "Warning";
+  title: string;
+  count: number;
+};
+
 /**
  * Represents a validation result returned by a validation API endpoint.
  *

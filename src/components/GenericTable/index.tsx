@@ -131,7 +131,7 @@ export type Props<T> = {
   tableProps?: TableProps;
   containerProps?: TableContainerProps;
   numRowsNoContent?: number;
-  AdditionalActions?: React.ReactNode;
+  AdditionalActions?: AdditionalActionsConfig;
   CustomTableHead?: React.ElementType<React.ComponentProps<typeof TableHead>>;
   CustomTableHeaderCell?: React.ElementType<React.ComponentProps<typeof TableCell>>;
   CustomTableBodyCell?: React.ElementType<React.ComponentProps<typeof TableCell>>;

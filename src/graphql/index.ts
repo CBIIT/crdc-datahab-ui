@@ -70,7 +70,16 @@ export { query as LIST_BATCHES } from "./listBatches";
 export type { Input as ListBatchesInput, Response as ListBatchesResp } from "./listBatches";
 
 export { query as SUBMISSION_QC_RESULTS } from "./submissionQCResults";
-export type { Response as SubmissionQCResultsResp } from "./submissionQCResults";
+export type {
+  Input as SubmissionQCResultsInput,
+  Response as SubmissionQCResultsResp,
+} from "./submissionQCResults";
+
+export { query as AGGREGATED_SUBMISSION_QC_RESULTS } from "./aggregatedSubmissionQCResults";
+export type {
+  Input as AggregatedSubmissionQCResultsInput,
+  Response as AggregatedSubmissionQCResultsResp,
+} from "./aggregatedSubmissionQCResults";
 
 export { query as SUBMISSION_CROSS_VALIDATION_RESULTS } from "./submissionCrossValidationResults";
 export type {

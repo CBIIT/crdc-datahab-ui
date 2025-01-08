@@ -1,16 +1,36 @@
-import { TablePagination as MuiTablePagination, TablePaginationProps, styled } from "@mui/material";
+import {
+  TablePagination as MuiTablePagination,
+  Stack,
+  TablePaginationProps,
+  styled,
+} from "@mui/material";
 import { CSSProperties, ElementType } from "react";
 import PaginationActions from "./PaginationActions";
 
+const StyledPaginationWrapper = styled(Stack, {
+  shouldForwardProp: (prop) => prop !== "verticalPlacement",
+})<{ verticalPlacement: "top" | "bottom" }>(({ verticalPlacement }) => ({
+  display: "flex",
+  flexDirection: "row",
+  justifyContent: "space-between",
+  alignItems: "center",
+  width: "100%",
+  borderTop: verticalPlacement === "bottom" ? "2px solid #083A50" : "none",
+  paddingLeft: "24px",
+  paddingRight: "2px",
+}));
+
 const StyledTablePagination = styled(MuiTablePagination, {
-  shouldForwardProp: (prop) => prop !== "placement" && prop !== "verticalPlacement",
+  shouldForwardProp: (prop) => prop !== "placement",
 })<
   TablePaginationProps & {
     component: ElementType;
-    verticalPlacement: "top" | "bottom";
     placement: CSSProperties["justifyContent"];
   }
->(({ verticalPlacement, placement }) => ({
+>(({ placement }) => ({
+  "&.MuiTablePagination-root": {
+    width: "100%",
+  },
   "& .MuiTablePagination-displayedRows, & .MuiTablePagination-selectLabel, & .MuiTablePagination-select":
     {
       height: "27px",
@@ -37,11 +57,10 @@ const StyledTablePagination = styled(MuiTablePagination, {
     marginBottom: 0,
   },
   "& .MuiToolbar-root": {
-    minHeight: "45px",
+    minHeight: "43px",
     height: "fit-content",
     paddingTop: "7px",
     paddingBottom: "6px",
-    borderTop: verticalPlacement === "bottom" ? "2px solid #083A50" : "none",
     background: "#FFFFFF",
     ...(placement && {
       justifyContent: placement,
@@ -57,9 +76,9 @@ type Props = {
   total: number;
   perPage: number;
   page: number;
-  verticalPlacement: "top" | "bottom";
+  verticalPlacement: VerticalPlacement;
   placement?: CSSProperties["justifyContent"];
-  AdditionalActions?: React.ReactNode;
+  AdditionalActions?: AdditionalActionsConfig;
 } & Partial<TablePaginationProps>;
 
 const TablePagination = ({
@@ -68,44 +87,50 @@ const TablePagination = ({
   perPage,
   page,
   verticalPlacement,
-  placement,
   AdditionalActions,
+  placement,
   rowsPerPageOptions = [5, 10, 20, 50],
   onPageChange,
   onRowsPerPageChange,
   ...rest
-}: Props) => (
-  <StyledTablePagination
-    rowsPerPageOptions={rowsPerPageOptions}
-    component="div"
-    count={total || 0}
-    rowsPerPage={perPage}
-    page={page}
-    onPageChange={onPageChange}
-    onRowsPerPageChange={onRowsPerPageChange}
-    verticalPlacement={verticalPlacement}
-    placement={placement}
-    nextIconButtonProps={{
-      disabled: disabled || !total || total <= (page + 1) * perPage,
-    }}
-    SelectProps={{
-      inputProps: {
-        "aria-label": "rows per page",
-        "data-testid": `generic-table-rows-per-page-${verticalPlacement}`,
-      },
-      native: true,
-    }}
-    backIconButtonProps={{ disabled: disabled || page <= 0 }}
-    // eslint-disable-next-line react/no-unstable-nested-components
-    ActionsComponent={(props) => (
-      <PaginationActions
-        AdditionalActions={AdditionalActions}
-        ariaProps={{ "aria-label": `${verticalPlacement} pagination actions` }}
-        {...props}
+}: Props) => {
+  const actions = AdditionalActions?.[verticalPlacement];
+
+  return (
+    <StyledPaginationWrapper verticalPlacement={verticalPlacement}>
+      {actions?.before}
+      <StyledTablePagination
+        rowsPerPageOptions={rowsPerPageOptions}
+        component="div"
+        count={total || 0}
+        rowsPerPage={perPage}
+        page={page}
+        onPageChange={onPageChange}
+        onRowsPerPageChange={onRowsPerPageChange}
+        placement={placement}
+        nextIconButtonProps={{
+          disabled: disabled || !total || total <= (page + 1) * perPage,
+        }}
+        SelectProps={{
+          inputProps: {
+            "aria-label": "rows per page",
+            "data-testid": `generic-table-rows-per-page-${verticalPlacement}`,
+          },
+          native: true,
+        }}
+        backIconButtonProps={{ disabled: disabled || page <= 0 }}
+        // eslint-disable-next-line react/no-unstable-nested-components
+        ActionsComponent={(props) => (
+          <PaginationActions
+            AdditionalActions={actions?.after}
+            ariaProps={{ "aria-label": `${verticalPlacement} pagination actions` }}
+            {...props}
+          />
+        )}
+        {...rest}
       />
-    )}
-    {...rest}
-  />
-);
+    </StyledPaginationWrapper>
+  );
+};
 
 export default TablePagination;
