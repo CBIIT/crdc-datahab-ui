@@ -20,7 +20,6 @@ import AddRemoveButton from "../../../components/AddRemoveButton";
 import PlannedPublication from "../../../components/Questionnaire/PlannedPublication";
 import { InitialQuestionnaire } from "../../../config/InitialValues";
 import TransitionGroupWrapper from "../../../components/Questionnaire/TransitionGroupWrapper";
-import SwitchInput from "../../../components/Questionnaire/SwitchInput";
 import useFormMode from "../../../hooks/useFormMode";
 import FundingAgency from "../../../components/Questionnaire/FundingAgency";
 import SelectInput from "../../../components/Questionnaire/SelectInput";
@@ -73,10 +72,6 @@ const FormSectionB: FC<FormSectionProps> = ({ SectionOption, refs }: FormSection
   const [fundings, setFundings] = useState<KeyedFunding[]>(
     data.study?.funding?.map(mapObjectWithKey) || []
   );
-  const [isDbGapRegistered, setIsdbGaPRegistered] = useState<boolean>(
-    data.study?.isDbGapRegistered
-  );
-  const [dbGaPPPHSNumber, setDbGaPPPHSNumber] = useState<string>(data.study?.dbGaPPPHSNumber);
 
   const customProgramIds: string[] = [NotApplicableProgram._id, OtherProgram._id];
   const programKeyRef = useRef(new Date().getTime());
@@ -104,9 +99,6 @@ const FormSectionB: FC<FormSectionProps> = ({ SectionOption, refs }: FormSection
     if (!formObject.study) {
       combinedData.study = InitialQuestionnaire.study;
     }
-    if (!formObject?.study?.dbGaPPPHSNumber) {
-      combinedData.study.dbGaPPPHSNumber = "";
-    }
 
     // Reset publications if the user has not entered any publications
     if (!formObject.study.publications || formObject.study.publications.length === 0) {
@@ -127,6 +119,13 @@ const FormSectionB: FC<FormSectionProps> = ({ SectionOption, refs }: FormSection
           ? plannedPublication.expectedDate
           : "",
       })) || [];
+
+    combinedData.study = {
+      // Restore dbGaPID from Section C
+      isDbGapRegistered: data?.study?.isDbGapRegistered,
+      dbGaPPPHSNumber: data?.study?.dbGaPPPHSNumber,
+      ...combinedData.study,
+    };
 
     return { ref: formRef, data: combinedData };
   };
@@ -168,13 +167,6 @@ const FormSectionB: FC<FormSectionProps> = ({ SectionOption, refs }: FormSection
       abbreviation: newProgram?.abbreviation || "",
       description: newProgram?.description || "",
     });
-  };
-
-  const handleIsDbGapRegisteredChange = (e, checked: boolean) => {
-    setIsdbGaPRegistered(checked);
-    if (!checked) {
-      setDbGaPPPHSNumber("");
-    }
   };
 
   /**
@@ -460,35 +452,6 @@ const FormSectionB: FC<FormSectionProps> = ({ SectionOption, refs }: FormSection
               readOnly={readOnlyInputs}
             />
           )}
-        />
-      </SectionGroup>
-
-      {/* dbGaP Registration section */}
-      <SectionGroup
-        title={SectionBMetadata.sections.DBGAP_REGISTRATION.title}
-        description={SectionBMetadata.sections.DBGAP_REGISTRATION.description}
-      >
-        <SwitchInput
-          id="section-b-dbGaP-registration"
-          label="Has your study been registered in dbGaP?"
-          name="study[isDbGapRegistered]"
-          required
-          value={isDbGapRegistered}
-          onChange={handleIsDbGapRegisteredChange}
-          isBoolean
-          readOnly={readOnlyInputs}
-        />
-        <TextInput
-          id="section-b-if-yes-provide-dbgap-phs-number"
-          label="If yes, provide dbGaP PHS number with the version number"
-          name="study[dbGaPPPHSNumber]"
-          value={dbGaPPPHSNumber}
-          onChange={(e) => setDbGaPPPHSNumber(e.target.value || "")}
-          maxLength={50}
-          placeholder={'Ex/ "phs002529.v1.p1". 50 characters allowed'}
-          gridWidth={12}
-          readOnly={readOnlyInputs || !isDbGapRegistered}
-          required={isDbGapRegistered}
         />
       </SectionGroup>
 

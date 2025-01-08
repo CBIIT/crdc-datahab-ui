@@ -397,12 +397,9 @@ const FormView: FC<Props> = ({ section }: Props) => {
     if (!isEqual(data.questionnaireData, newData)) {
       const res = await setData(newData);
       if (res?.status === "failed" && !!res?.errorMessage) {
-        enqueueSnackbar(
-          `An error occurred while saving the ${map[activeSection].title} section. ${res.errorMessage}`,
-          {
-            variant: "error",
-          }
-        );
+        enqueueSnackbar(`An error occurred while saving the ${map[activeSection].title} section.`, {
+          variant: "error",
+        });
       } else {
         enqueueSnackbar(
           `Your changes for the ${map[activeSection].title} section have been successfully saved.`,

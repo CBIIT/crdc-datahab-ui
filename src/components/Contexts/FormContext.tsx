@@ -22,6 +22,7 @@ import {
   SaveAppInput,
 } from "../../graphql";
 import { InitialApplication, InitialQuestionnaire } from "../../config/InitialValues";
+import { Logger } from "../../utils";
 
 export type SetDataReturnType =
   | { status: "success"; id: string }
@@ -171,11 +172,13 @@ export const FormProvider: FC<ProviderProps> = ({ children, id }: ProviderProps)
     if (errors || !d?.saveApplication?.["_id"]) {
       const errorMessage = errors?.[0]?.message || "An unknown GraphQL Error occurred";
 
+      Logger.error("Unable to save application", errors);
       setState({
         ...newState,
         status: Status.ERROR,
         error: errorMessage,
       });
+
       return {
         status: "failed",
         errorMessage,

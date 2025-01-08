@@ -53,7 +53,7 @@ const FundingAgency: FC<Props> = ({ idPrefix = "", index, funding, readOnly, onD
           label="Grant or Contract Number(s)"
           name={`study[funding][${index}][grantNumbers]`}
           value={grantNumbers}
-          maxLength={50}
+          maxLength={250}
           placeholder="Enter Grant or Contract Number(s)"
           tooltipText={
             <>

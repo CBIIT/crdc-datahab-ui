@@ -16,6 +16,7 @@ import useFormMode from "../../../hooks/useFormMode";
 import SectionMetadata from "../../../config/SectionMetadata";
 import LabelCheckbox from "../../../components/Questionnaire/LabelCheckbox";
 import CustomAutocomplete from "../../../components/Questionnaire/CustomAutocomplete";
+import SwitchInput from "../../../components/Questionnaire/SwitchInput";
 
 const AccessTypesDescription = styled("span")(() => ({
   fontWeight: 400,
@@ -44,6 +45,10 @@ const FormSectionC: FC<FormSectionProps> = ({ SectionOption, refs }: FormSection
   );
   const [otherSpecies, setOtherSpecies] = useState<string>(data.otherSpeciesOfSubjects);
   const [otherSpeciesEnabled, setOtherSpeciesEnabled] = useState<boolean>(data.otherSpeciesEnabled);
+  const [isDbGapRegistered, setIsdbGaPRegistered] = useState<boolean>(
+    data.study?.isDbGapRegistered
+  );
+  const [dbGaPPPHSNumber, setDbGaPPPHSNumber] = useState<string>(data.study?.dbGaPPPHSNumber);
 
   const getFormObject = (): FormObject | null => {
     if (!formRef.current) {
@@ -51,7 +56,13 @@ const FormSectionC: FC<FormSectionProps> = ({ SectionOption, refs }: FormSection
     }
 
     const formObject = parseForm(formRef.current, { nullify: false });
-    const combinedData = { ...cloneDeep(data), ...formObject };
+    const combinedData: QuestionnaireData = { ...cloneDeep(data), ...formObject };
+
+    combinedData.study = {
+      ...data.study, // Restore study data from Section B
+      isDbGapRegistered: formObject?.study?.isDbGapRegistered,
+      dbGaPPPHSNumber: formObject?.study?.dbGaPPPHSNumber || "",
+    };
 
     combinedData.numberOfParticipants = parseInt(formObject.numberOfParticipants, 10) || null;
 
@@ -101,6 +112,13 @@ const FormSectionC: FC<FormSectionProps> = ({ SectionOption, refs }: FormSection
     setOtherSpeciesEnabled(checked);
   };
 
+  const handleIsDbGapRegisteredChange = (e, checked: boolean) => {
+    setIsdbGaPRegistered(checked);
+    if (!checked) {
+      setDbGaPPPHSNumber("");
+    }
+  };
+
   useEffect(() => {
     getFormObjectRef.current = getFormObject;
   }, [refs]);
@@ -129,6 +147,35 @@ const FormSectionC: FC<FormSectionProps> = ({ SectionOption, refs }: FormSection
           gridWidth={12}
           required
           readOnly={readOnlyInputs}
+        />
+      </SectionGroup>
+
+      {/* dbGaP Registration section */}
+      <SectionGroup
+        title={SectionCMetadata.sections.DBGAP_REGISTRATION.title}
+        description={SectionCMetadata.sections.DBGAP_REGISTRATION.description}
+      >
+        <SwitchInput
+          id="section-c-dbGaP-registration"
+          label="Has your study been registered in dbGaP?"
+          name="study[isDbGapRegistered]"
+          required
+          value={isDbGapRegistered}
+          onChange={handleIsDbGapRegisteredChange}
+          isBoolean
+          readOnly={readOnlyInputs}
+        />
+        <TextInput
+          id="section-c-if-yes-provide-dbgap-phs-number"
+          label="If yes, provide dbGaP PHS number with the version number"
+          name="study[dbGaPPPHSNumber]"
+          value={dbGaPPPHSNumber}
+          onChange={(e) => setDbGaPPPHSNumber(e.target.value || "")}
+          maxLength={50}
+          placeholder={'Ex/ "phs002529.v1.p1". 50 characters allowed'}
+          gridWidth={12}
+          readOnly={readOnlyInputs || !isDbGapRegistered}
+          required={isDbGapRegistered}
         />
       </SectionGroup>
 

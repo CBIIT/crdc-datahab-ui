@@ -7,7 +7,7 @@ import RemoveCircleIcon from "@mui/icons-material/RemoveCircle";
 import AddCircleIcon from "@mui/icons-material/AddCircle";
 import { Status as FormStatus, useFormContext } from "../../../components/Contexts/FormContext";
 import FormContainer from "../../../components/Questionnaire/FormContainer";
-import SectionGroup from "../../../components/Questionnaire/SectionGroup";
+import SectionGroup, { StyledDescription } from "../../../components/Questionnaire/SectionGroup";
 import SwitchInput from "../../../components/Questionnaire/SwitchInput";
 import TextInput from "../../../components/Questionnaire/TextInput";
 import {
@@ -268,6 +268,7 @@ const FormSectionD: FC<FormSectionProps> = ({ SectionOption, refs }: FormSection
           initialValue={data.targetedSubmissionDate}
           gridWidth={6}
           disablePast
+          required
           readOnly={readOnlyInputs}
         />
         <DatePickerInput
@@ -278,6 +279,7 @@ const FormSectionD: FC<FormSectionProps> = ({ SectionOption, refs }: FormSection
           initialValue={data.targetedReleaseDate}
           gridWidth={6}
           disablePast
+          required
           readOnly={readOnlyInputs}
         />
       </SectionGroup>
@@ -549,26 +551,20 @@ const FormSectionD: FC<FormSectionProps> = ({ SectionOption, refs }: FormSection
             </TableBody>
           </Table>
         </TableContainer>
+        <RadioYesNoInput
+          id="section-d-data-de-identified"
+          name="dataDeIdentified"
+          label="Confirm the data you plan to submit are de-identified"
+          value={data.dataDeIdentified}
+          gridWidth={12}
+          row
+          required
+          readOnly={readOnlyInputs}
+        />
       </SectionGroup>
 
       {/* Additional Information Section */}
-      <SectionGroup
-        title={SectionDMetadata.sections.ADDITIONAL_COMMENTS.title}
-        description={SectionDMetadata.sections.ADDITIONAL_COMMENTS.description}
-      >
-        <TextInput
-          name="submitterComment"
-          value={data.submitterComment}
-          gridWidth={12}
-          maxLength={500}
-          placeholder="500 characters allowed"
-          minRows={5}
-          multiline
-          readOnly={readOnlyInputs}
-          inputProps={{
-            "aria-label": SectionDMetadata.sections.ADDITIONAL_COMMENTS.title,
-          }}
-        />
+      <SectionGroup title={SectionDMetadata.sections.ADDITIONAL_COMMENTS.title} description={" "}>
         <FormGroupCheckbox
           idPrefix="section-c-"
           label="Cell lines, model systems (select all that apply or neither)"
@@ -579,15 +575,23 @@ const FormSectionD: FC<FormSectionProps> = ({ SectionOption, refs }: FormSection
           gridWidth={12}
           readOnly={readOnlyInputs}
         />
-        <RadioYesNoInput
-          id="section-c-data-de-identified"
-          name="dataDeIdentified"
-          label="Confirm the data you plan to submit are de-identified"
-          value={data.dataDeIdentified}
+        <TextInput
+          name="submitterComment"
+          label={
+            <StyledDescription variant="body1">
+              {SectionDMetadata.sections.ADDITIONAL_COMMENTS.description}
+            </StyledDescription>
+          }
+          value={data.submitterComment}
           gridWidth={12}
-          row
-          required
+          maxLength={500}
+          placeholder="500 characters allowed"
+          minRows={5}
+          multiline
           readOnly={readOnlyInputs}
+          inputProps={{
+            "aria-label": SectionDMetadata.sections.ADDITIONAL_COMMENTS.title,
+          }}
         />
       </SectionGroup>
     </FormContainer>

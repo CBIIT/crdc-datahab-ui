@@ -44,10 +44,6 @@ const sectionMetadata = {
         title: "FUNDING AGENCY/ORGANIZATION",
         description: "List the agency(s) and/or organization(s) that funded this study.",
       },
-      DBGAP_REGISTRATION: {
-        title: "dbGaP REGISTRATION",
-        description: "Please indicate if your study is currently registered with dbGaP.",
-      },
       EXISTING_PUBLICATIONS: {
         title: "EXISTING PUBLICATIONS",
         description:
@@ -87,6 +83,10 @@ const sectionMetadata = {
             </Link>
           </>
         ),
+      },
+      DBGAP_REGISTRATION: {
+        title: "dbGaP REGISTRATION",
+        description: "Please indicate if your study is currently registered with dbGaP.",
       },
       CANCER_TYPES: {
         title: "CANCER TYPES",

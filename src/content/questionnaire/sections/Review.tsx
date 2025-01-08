@@ -18,6 +18,7 @@ import useFormMode from "../../../hooks/useFormMode";
 import DataTypes from "../../../config/DataTypesConfig";
 import SectionMetadata from "../../../config/SectionMetadata";
 import { repositoryDataTypesOptions } from "../../../components/Questionnaire/Repository";
+import { StyledDescription } from "../../../components/Questionnaire/SectionGroup";
 
 const StyledAddress = styled(Stack)(() => ({
   display: "flex",
@@ -330,25 +331,6 @@ const FormSectionReview: FC<FormSectionProps> = ({ SectionOption, refs }: FormSe
           </ReviewDataListing>
         ))}
 
-        <ReviewDataListing
-          idPrefix="review-dbGaP"
-          title={SectionMetadata.B.sections.DBGAP_REGISTRATION.title}
-          description={SectionMetadata.B.sections.DBGAP_REGISTRATION.description}
-        >
-          <ReviewDataListingProperty
-            idPrefix="review-dbGaP-registration"
-            label="HAS YOUR STUDY BEEN REGISTERED IN dbGaP?"
-            value={study.isDbGapRegistered ? "Yes" : "No"}
-            textTransform="none"
-          />
-          <ReviewDataListingProperty
-            idPrefix="review-dbGaP-phs-number"
-            label="dbGaP PHS NUMBER"
-            value={study.isDbGapRegistered ? study.dbGaPPPHSNumber : "NA"}
-            textTransform="none"
-          />
-        </ReviewDataListing>
-
         {publications?.map((publication: KeyedPublication, idx: number) => (
           <ReviewDataListing
             key={publication.key}
@@ -456,6 +438,25 @@ const FormSectionReview: FC<FormSectionProps> = ({ SectionOption, refs }: FormSe
             value={data.accessTypes}
             valuePlacement="bottom"
             isList
+          />
+        </ReviewDataListing>
+
+        <ReviewDataListing
+          idPrefix="review-dbGaP"
+          title={SectionMetadata.C.sections.DBGAP_REGISTRATION.title}
+          description={SectionMetadata.C.sections.DBGAP_REGISTRATION.description}
+        >
+          <ReviewDataListingProperty
+            idPrefix="review-dbGaP-registration"
+            label="HAS YOUR STUDY BEEN REGISTERED IN dbGaP?"
+            value={study.isDbGapRegistered ? "Yes" : "No"}
+            textTransform="none"
+          />
+          <ReviewDataListingProperty
+            idPrefix="review-dbGaP-phs-number"
+            label="dbGaP PHS NUMBER"
+            value={study.isDbGapRegistered ? study.dbGaPPPHSNumber : "NA"}
+            textTransform="none"
           />
         </ReviewDataListing>
 
@@ -660,17 +661,18 @@ const FormSectionReview: FC<FormSectionProps> = ({ SectionOption, refs }: FormSe
           </Grid>
         </ReviewDataListing>
 
+        <ReviewDataListing idPrefix="review-subjects">
+          <ReviewDataListingProperty
+            idPrefix="review-subjects-data-de-identified"
+            label="Data de-identified"
+            value={data.dataDeIdentified ? "Yes" : "No"}
+          />
+        </ReviewDataListing>
+
         <ReviewDataListing
           idPrefix="review-additional-comments"
           title={SectionMetadata.D.sections.ADDITIONAL_COMMENTS.title}
-          description={SectionMetadata.D.sections.ADDITIONAL_COMMENTS.description}
         >
-          <ReviewDataListingProperty
-            idPrefix="review-additional-comments-submitter-comment"
-            gridWidth={12}
-            value={data.submitterComment}
-            valuePlacement="bottom"
-          />
           <ReviewDataListingProperty
             idPrefix="review-subjects-cell-lines"
             label="Cell lines"
@@ -682,9 +684,16 @@ const FormSectionReview: FC<FormSectionProps> = ({ SectionOption, refs }: FormSe
             value={data.modelSystems ? "Yes" : "No"}
           />
           <ReviewDataListingProperty
-            idPrefix="review-subjects-data-de-identified"
-            label="Data de-identified"
-            value={data.dataDeIdentified ? "Yes" : "No"}
+            idPrefix="review-additional-comments-submitter-comment"
+            gridWidth={12}
+            value={data.submitterComment}
+            label={
+              <StyledDescription variant="body1">
+                {SectionMetadata.D.sections.ADDITIONAL_COMMENTS.description}
+              </StyledDescription>
+            }
+            textTransform="none"
+            valuePlacement="bottom"
           />
         </ReviewDataListing>
       </ReviewSection>

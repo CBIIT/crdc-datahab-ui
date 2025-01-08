@@ -1,6 +1,5 @@
 /**
- * Configuration for Questionnaire Section C Cell Line Model System
- *
+ * Configuration for Questionnaire Section D Cell Line Model System
  */
 const options: FormGroupCheckboxOption[] = [
   {
