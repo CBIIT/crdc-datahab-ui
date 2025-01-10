@@ -12,7 +12,6 @@ import {
 } from "../../graphql";
 import { FormatDate } from "../../utils";
 import { formatAccessTypes } from "../../utils/studyUtils";
-import { useAuthContext, Status as AuthStatus } from "../../components/Contexts/AuthContext";
 import ApprovedStudyFilters from "../../components/AdminPortal/Studies/ApprovedStudyFilters";
 import TruncatedText from "../../components/TruncatedText";
 import StyledTooltip from "../../components/StyledFormComponents/StyledTooltip";
@@ -176,7 +175,6 @@ const ListView = () => {
   usePageTitle("Manage Studies");
 
   const { state } = useLocation();
-  const { status: authStatus } = useAuthContext();
 
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<boolean>(false);
@@ -274,7 +272,7 @@ const ListView = () => {
           columns={columns}
           data={data || []}
           total={count || 0}
-          loading={loading || authStatus === AuthStatus.LOADING}
+          loading={loading}
           disableUrlParams={false}
           defaultRowsPerPage={20}
           defaultOrder="asc"

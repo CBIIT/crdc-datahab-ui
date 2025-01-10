@@ -38,6 +38,8 @@ const baseUser: User = {
   dataCommons: [],
   createdAt: "",
   updateAt: "",
+  permissions: ["data_submission:create"],
+  notifications: [],
 };
 
 const baseAuthCtx: AuthContextState = {
@@ -752,7 +754,7 @@ describe("SubmittedData > Table", () => {
     });
   });
 
-  it("should disable the checkboxes when collaborator does not have 'Can Edit' permissions", async () => {
+  it("should enable the checkboxes when user is a collaborator", async () => {
     const getNodesMock: MockedResponse<GetSubmissionNodesResp, GetSubmissionNodesInput> = {
       maxUsageCount: 2, // initial query + orderBy bug
       request: {
@@ -788,66 +790,6 @@ describe("SubmittedData > Table", () => {
           {
             collaboratorID: baseUser._id,
             collaboratorName: "",
-            Organization: baseUser.organization,
-            permission: "Can View",
-          },
-        ]}
-      >
-        <SubmittedData />
-      </TestParent>
-    );
-
-    await waitFor(() => {
-      const headerCheckbox = within(getByTestId("header-checkbox")).getByRole("checkbox");
-      const rowCheckbox = getAllByTestId("row-checkbox");
-
-      expect(headerCheckbox).toBeDisabled();
-      rowCheckbox.forEach((checkbox) =>
-        expect(within(checkbox).getByRole("checkbox")).toBeDisabled()
-      );
-
-      const checkboxes = getAllByRole("checkbox");
-      checkboxes.forEach((checkbox) => expect(checkbox).toBeDisabled());
-    });
-  });
-
-  it("should enable the checkboxes when collaborator has 'Can Edit' permissions", async () => {
-    const getNodesMock: MockedResponse<GetSubmissionNodesResp, GetSubmissionNodesInput> = {
-      maxUsageCount: 2, // initial query + orderBy bug
-      request: {
-        query: GET_SUBMISSION_NODES,
-      },
-      variableMatcher: () => true,
-      result: {
-        data: {
-          getSubmissionNodes: {
-            total: 200,
-            properties: ["col-xyz"],
-            IDPropName: "col-xyz",
-            nodes: Array(20).fill({
-              nodeType: "example-node",
-              nodeID: "example-node-id",
-              props: JSON.stringify({
-                "col-xyz": "value-for-column-xyz",
-              }),
-              status: "New",
-            }),
-          },
-        },
-      },
-    };
-
-    const { getAllByRole, getAllByTestId, getByTestId } = render(
-      <TestParent
-        mocks={[mockSubmissionQuery, getNodesMock]}
-        submissionId="example-select-all-id"
-        submissionName={undefined}
-        submitterID="some-other-user"
-        collaborators={[
-          {
-            collaboratorID: baseUser._id,
-            collaboratorName: "",
-            Organization: baseUser.organization,
             permission: "Can Edit",
           },
         ]}

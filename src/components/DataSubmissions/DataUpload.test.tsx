@@ -26,7 +26,7 @@ jest.mock("../../utils", () => ({
 
 const baseSubmission: Omit<Submission, "_id"> = {
   name: "",
-  submitterID: "",
+  submitterID: "current-user",
   submitterName: "",
   organization: undefined,
   dataCommons: "",
@@ -59,7 +59,7 @@ const baseSubmission: Omit<Submission, "_id"> = {
   collaborators: [],
 };
 
-const baseUser: User = {
+const baseUser: Omit<User, "permissions"> = {
   _id: "current-user",
   firstName: "",
   lastName: "",
@@ -71,20 +71,27 @@ const baseUser: User = {
   dataCommons: null,
   createdAt: "",
   updateAt: "",
+  notifications: [],
 };
 
 type ParentProps = {
   mocks?: MockedResponse[];
-  role?: User["role"];
+  role?: UserRole;
+  permissions?: AuthPermissions[];
   children: React.ReactNode;
 };
 
-const TestParent: FC<ParentProps> = ({ mocks = [], role = "Submitter", children }) => {
+const TestParent: FC<ParentProps> = ({
+  mocks = [],
+  role = "Submitter",
+  permissions = ["data_submission:view", "data_submission:create"],
+  children,
+}) => {
   const authCtxState: AuthCtxState = useMemo<AuthCtxState>(
     () => ({
       status: AuthStatus.LOADED,
       isLoggedIn: true,
-      user: { ...baseUser, role },
+      user: { ...baseUser, role, permissions },
     }),
     [role]
   );
@@ -299,32 +306,7 @@ describe("Implementation Requirements", () => {
     expect(button).toBeVisible();
   });
 
-  it.each<User["role"]>(["Submitter", "Organization Owner"])(
-    "should enable the Uploader CLI download button for '%s' role",
-    async (role) => {
-      const { getByTestId } = render(
-        <DataUpload
-          submission={{
-            ...baseSubmission,
-            _id: "config-download-role-check",
-            dataType: "Metadata and Data Files", // NOTE: Required for the button to show
-          }}
-        />,
-        { wrapper: (p) => <TestParent {...p} role={role} /> }
-      );
-
-      expect(getByTestId("uploader-cli-config-button")).toBeEnabled();
-    }
-  );
-
-  it.each<User["role"]>([
-    "Admin",
-    "Data Curator",
-    "Data Commons POC",
-    "Federal Lead",
-    "User",
-    "fake role" as User["role"], // NOTE: asserting that a whitelist of allowed roles is used instead of a blacklist
-  ])("should disable the Uploader CLI download button for '%s' role", async (role) => {
+  it("should enable the Uploader CLI download button when user has required permissions", async () => {
     const { getByTestId } = render(
       <DataUpload
         submission={{
@@ -333,37 +315,32 @@ describe("Implementation Requirements", () => {
           dataType: "Metadata and Data Files", // NOTE: Required for the button to show
         }}
       />,
-      { wrapper: (p) => <TestParent {...p} role={role} /> }
+      {
+        wrapper: (p) => (
+          <TestParent {...p} permissions={["data_submission:view", "data_submission:create"]} />
+        ),
+      }
     );
 
-    expect(getByTestId("uploader-cli-config-button")).toBeDisabled();
+    expect(getByTestId("uploader-cli-config-button")).toBeEnabled();
   });
 
-  it("should disable the Uploader CLI download button when collaborator does not have 'Can Edit' permissions", async () => {
+  it("should disable the Uploader CLI download button when user is missing required permissions", async () => {
     const { getByTestId } = render(
       <DataUpload
         submission={{
           ...baseSubmission,
-          _id: "config-download-check",
+          _id: "config-download-role-check",
           dataType: "Metadata and Data Files", // NOTE: Required for the button to show
-          submitterID: "some-other-user",
-          collaborators: [
-            {
-              collaboratorID: "current-user",
-              collaboratorName: "",
-              Organization: null,
-              permission: "Can View",
-            },
-          ],
         }}
       />,
-      { wrapper: (p) => <TestParent {...p} role="Submitter" /> }
+      { wrapper: (p) => <TestParent {...p} permissions={[]} /> }
     );
 
     expect(getByTestId("uploader-cli-config-button")).toBeDisabled();
   });
 
-  it("should enable the Uploader CLI download button when collaborator does have 'Can Edit' permissions", async () => {
+  it("should enable the Uploader CLI download button when user is a collaborator", async () => {
     const { getByTestId } = render(
       <DataUpload
         submission={{
@@ -375,7 +352,6 @@ describe("Implementation Requirements", () => {
             {
               collaboratorID: "current-user",
               collaboratorName: "",
-              Organization: null,
               permission: "Can Edit",
             },
           ],

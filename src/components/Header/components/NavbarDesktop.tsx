@@ -3,8 +3,7 @@ import { NavLink, Link, useNavigate, useLocation } from "react-router-dom";
 import { Button, styled } from "@mui/material";
 import { useAuthContext } from "../../Contexts/AuthContext";
 import GenericAlert from "../../GenericAlert";
-import { navMobileList, navbarSublists } from "../../../config/HeaderConfig";
-import { GenerateApiTokenRoles } from "../../../config/AuthRoles";
+import { HeaderLinks, HeaderSubLinks } from "../../../config/HeaderConfig";
 import APITokenDialog from "../../APITokenDialog";
 import UploaderToolDialog from "../../UploaderToolDialog";
 
@@ -245,15 +244,6 @@ const NameDropdownContainer = styled("div")({
   },
 });
 
-const NameDropdown = styled("div")({
-  top: "60.5px",
-  left: 0,
-  width: "100%",
-  background: "#1F4671",
-  zIndex: 1100,
-  position: "absolute",
-});
-
 const StyledLoginLink = styled(Link)({
   color: "#007BBD !important",
   textAlign: "right",
@@ -270,16 +260,14 @@ const StyledLoginLink = styled(Link)({
   marginRight: "32px",
 });
 
-const useOutsideAlerter = (ref1, ref2) => {
+const useOutsideAlerter = (ref1: React.RefObject<HTMLDivElement>) => {
   useEffect(() => {
     function handleClickOutside(event) {
       if (
         !event.target ||
         (event.target.getAttribute("class") !== "dropdownList" &&
           ref1.current &&
-          !ref1.current.contains(event.target) &&
-          ref2.current &&
-          !ref2.current.contains(event.target))
+          !ref1.current.contains(event.target))
       ) {
         const toggle = document.getElementsByClassName("navText clicked");
         if (toggle[0] && !event.target.getAttribute("class")?.includes("navText clicked")) {
@@ -293,7 +281,7 @@ const useOutsideAlerter = (ref1, ref2) => {
     return () => {
       document.removeEventListener("mousedown", handleClickOutside);
     };
-  }, [ref1, ref2]);
+  }, [ref1]);
 };
 
 const NavBar = () => {
@@ -306,10 +294,9 @@ const NavBar = () => {
   const [uploaderToolOpen, setUploaderToolOpen] = useState<boolean>(false);
   const [showLogoutAlert, setShowLogoutAlert] = useState<boolean>(false);
   const [restorePath, setRestorePath] = useState<string>(null);
-  const dropdownSelection = useRef(null);
-  const nameDropdownSelection = useRef(null);
+  const dropdownSelection = useRef<HTMLDivElement>(null);
 
-  const clickableObject = navMobileList.filter(
+  const clickableObject = HeaderLinks.filter(
     (item) => item.className === "navMobileItem clickable"
   );
   const clickableTitle = clickableObject.map((item) => item.name);
@@ -317,13 +304,54 @@ const NavBar = () => {
 
   clickableTitle.push(displayName);
 
-  useOutsideAlerter(dropdownSelection, nameDropdownSelection);
-
-  useEffect(() => {
-    if (!isLoggedIn) {
-      setClickedTitle("");
-    }
-  }, [isLoggedIn]);
+  HeaderSubLinks[displayName] = [
+    {
+      name: "User Profile",
+      link: `/profile/${user?._id}`,
+      id: "navbar-dropdown-item-user-profile",
+      className: "navMobileSubItem",
+    },
+    {
+      name: "Uploader CLI Tool",
+      onClick: () => setUploaderToolOpen(true),
+      id: "navbar-dropdown-item-uploader-tool",
+      className: "navMobileSubItem action",
+    },
+    {
+      name: "API Token",
+      onClick: () => setOpenAPITokenDialog(true),
+      id: "navbar-dropdown-item-api-token",
+      className: "navMobileSubItem action",
+      permissions: ["data_submission:create"],
+    },
+    {
+      name: "Manage Studies",
+      link: "/studies",
+      id: "navbar-dropdown-item-studies-manage",
+      className: "navMobileSubItem",
+      permissions: ["study:manage"],
+    },
+    {
+      name: "Manage Programs",
+      link: "/programs",
+      id: "navbar-dropdown-item-program-manage",
+      className: "navMobileSubItem",
+      permissions: ["program:manage"],
+    },
+    {
+      name: "Manage Users",
+      link: "/users",
+      id: "navbar-dropdown-item-user-manage",
+      className: "navMobileSubItem",
+      permissions: ["user:manage"],
+    },
+    {
+      name: "Logout",
+      onClick: () => handleLogout(),
+      id: "navbar-dropdown-item-logout",
+      className: "navMobileSubItem action",
+    },
+  ];
 
   const handleLogout = async () => {
     setClickedTitle("");
@@ -349,18 +377,26 @@ const NavBar = () => {
     }
   };
 
-  function shouldBeUnderlined(item) {
+  const shouldBeUnderlined = (item) => {
     const linkName = item.name;
     const correctPath = window.location.pathname;
     if (item.className === "navMobileItem") {
       return correctPath === item.link;
     }
-    if (navbarSublists[linkName] === undefined) {
+    if (HeaderSubLinks[linkName] === undefined) {
       return false;
     }
-    const linkNames = Object.values(navbarSublists[linkName]).map((e: NavBarSubItem) => e.link);
+    const linkNames = Object.values(HeaderSubLinks[linkName]).map((e: NavBarSubItem) => e.link);
     return linkNames.includes(correctPath);
-  }
+  };
+
+  useOutsideAlerter(dropdownSelection);
+
+  useEffect(() => {
+    if (!isLoggedIn) {
+      setClickedTitle("");
+    }
+  }, [isLoggedIn]);
 
   useEffect(() => {
     setClickedTitle("");
@@ -382,9 +418,13 @@ const NavBar = () => {
       </GenericAlert>
       <NavContainer>
         <UlContainer>
-          {navMobileList.map((navItem) => {
-            // If the user is not logged in and the item requires a role, don't show it
-            if (Array.isArray(navItem?.roles) && !navItem.roles.includes(user?.role)) {
+          {HeaderLinks.map((navItem: NavBarItem) => {
+            if (
+              navItem?.permissions?.length > 0 &&
+              !navItem?.permissions?.every(
+                (permission: AuthPermissions) => user?.permissions?.includes(permission)
+              )
+            ) {
               return null;
             }
 
@@ -465,126 +505,58 @@ const NavBar = () => {
       <Dropdown ref={dropdownSelection} className={clickedTitle === "" ? "invisible" : ""}>
         <NameDropdownContainer>
           <div className="dropdownList">
-            {clickedTitle !== "" && clickedTitle !== displayName
-              ? navbarSublists[clickedTitle]?.map((dropItem, idx) => {
-                  const dropkey = `drop_${idx}`;
-                  return (
-                    dropItem.link && (
-                      <Link
-                        target={
-                          dropItem.link.startsWith("https://") || dropItem.link.endsWith(".pdf")
-                            ? "_blank"
-                            : "_self"
-                        }
-                        id={dropItem.id}
-                        to={dropItem.link}
-                        className="dropdownItem"
-                        key={dropkey}
-                        onClick={() => setClickedTitle("")}
-                      >
-                        {dropItem.name}
-                        <div className="dropdownItemText">{dropItem.text}</div>
-                      </Link>
+            {clickedTitle !== ""
+              ? HeaderSubLinks[clickedTitle]?.map((dropItem) => {
+                  if (
+                    dropItem?.permissions?.length > 0 &&
+                    !dropItem?.permissions?.every(
+                      (permission: AuthPermissions) => user?.permissions?.includes(permission)
                     )
-                  );
+                  ) {
+                    return null;
+                  }
+
+                  if (dropItem.link) {
+                    return (
+                      <span className="dropdownItem" key={dropItem.id}>
+                        <Link
+                          target={
+                            dropItem.link.startsWith("https://") || dropItem.link.endsWith(".pdf")
+                              ? "_blank"
+                              : "_self"
+                          }
+                          id={dropItem.id}
+                          to={dropItem.link}
+                          className="dropdownItem"
+                          onClick={() => setClickedTitle("")}
+                        >
+                          {dropItem.name}
+                          {dropItem.text && <div className="dropdownItemText">{dropItem.text}</div>}
+                        </Link>
+                      </span>
+                    );
+                  }
+
+                  if (dropItem.onClick) {
+                    return (
+                      <span className="dropdownItem" key={dropItem.id}>
+                        <Button
+                          id={dropItem.id}
+                          className="dropdownItem dropdownItemButton"
+                          onClick={dropItem.onClick}
+                        >
+                          {dropItem.name}
+                        </Button>
+                      </span>
+                    );
+                  }
+
+                  return null;
                 })
               : null}
           </div>
         </NameDropdownContainer>
       </Dropdown>
-      <NameDropdown
-        ref={nameDropdownSelection}
-        className={clickedTitle !== displayName ? "invisible" : ""}
-      >
-        <NameDropdownContainer>
-          <div className="dropdownList">
-            <span className="dropdownItem">
-              <Link
-                id="navbar-dropdown-item-name-user-profile"
-                to={`/profile/${user?._id}`}
-                className="dropdownItem"
-                onClick={() => setClickedTitle("")}
-              >
-                User Profile
-              </Link>
-            </span>
-            <span className="dropdownItem">
-              <Button
-                id="navbar-dropdown-item-name-uploader-tool"
-                className="dropdownItem dropdownItemButton"
-                onClick={() => setUploaderToolOpen(true)}
-              >
-                Uploader CLI Tool
-              </Button>
-            </span>
-            {(user?.role === "Admin" || user?.role === "Organization Owner") && (
-              <span className="dropdownItem">
-                <Link
-                  id="navbar-dropdown-item-name-user-manage"
-                  to="/users"
-                  className="dropdownItem"
-                  onClick={() => setClickedTitle("")}
-                >
-                  Manage Users
-                </Link>
-              </span>
-            )}
-            {user?.role === "Admin" && (
-              <span className="dropdownItem">
-                <Link
-                  id="navbar-dropdown-item-name-organization-manage"
-                  to="/programs"
-                  className="dropdownItem"
-                  onClick={() => setClickedTitle("")}
-                >
-                  Manage Programs
-                </Link>
-              </span>
-            )}
-            {user?.role === "Admin" && (
-              <span className="dropdownItem">
-                <Link
-                  id="navbar-dropdown-item-name-studies-manage"
-                  to="/studies"
-                  className="dropdownItem"
-                  onClick={() => setClickedTitle("")}
-                >
-                  Manage Studies
-                </Link>
-              </span>
-            )}
-            {user?.role && GenerateApiTokenRoles.includes(user?.role) ? (
-              <span className="dropdownItem">
-                <Button
-                  id="navbar-dropdown-item-name-api-token"
-                  className="dropdownItem dropdownItemButton"
-                  onClick={() => setOpenAPITokenDialog(true)}
-                >
-                  API Token
-                </Button>
-              </span>
-            ) : null}
-            <span
-              id="navbar-dropdown-item-name-logout"
-              role="button"
-              tabIndex={0}
-              className="dropdownItem"
-              onClick={() => {
-                setClickedTitle("");
-                handleLogout();
-              }}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") {
-                  setClickedTitle("");
-                  handleLogout();
-                }
-              }}
-            >
-              Logout
-            </span>
-          </div>
-        </NameDropdownContainer>
-      </NameDropdown>
       <APITokenDialog open={openAPITokenDialog} onClose={() => setOpenAPITokenDialog(false)} />
       <UploaderToolDialog open={uploaderToolOpen} onClose={() => setUploaderToolOpen(false)} />
     </Nav>

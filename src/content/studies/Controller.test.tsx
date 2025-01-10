@@ -19,7 +19,7 @@ import {
 } from "../../graphql";
 
 // NOTE: Omitting fields depended on by the component
-const baseUser: Omit<User, "role"> = {
+const baseUser: Omit<User, "role" | "permissions"> = {
   _id: "",
   firstName: "",
   lastName: "",
@@ -30,10 +30,12 @@ const baseUser: Omit<User, "role"> = {
   createdAt: "",
   updateAt: "",
   studies: null,
+  notifications: [],
 };
 
 type ParentProps = {
-  role: User["role"];
+  role: UserRole;
+  permissions?: AuthPermissions[];
   initialEntry?: string;
   mocks?: MockedResponse[];
   ctxStatus?: AuthContextStatus;
@@ -42,6 +44,7 @@ type ParentProps = {
 
 const TestParent: FC<ParentProps> = ({
   role,
+  permissions = ["study:manage"],
   initialEntry = "/studies",
   mocks = [],
   ctxStatus = AuthContextStatus.LOADED,
@@ -51,7 +54,7 @@ const TestParent: FC<ParentProps> = ({
     () => ({
       status: ctxStatus,
       isLoggedIn: role !== null,
-      user: { ...baseUser, role },
+      user: { ...baseUser, role, permissions },
     }),
     [role, ctxStatus]
   );
@@ -135,15 +138,9 @@ describe("StudiesController", () => {
     });
   });
 
-  it.each<UserRole>([
-    "Data Curator",
-    "Data Commons POC",
-    "Federal Lead",
-    "User",
-    "fake role" as User["role"],
-  ])("should redirect the user role %p to the home page", (role) => {
+  it("should redirect the user missing the required permissions to the home page", async () => {
     const { getByText } = render(
-      <TestParent role={role}>
+      <TestParent role="Admin" permissions={[]}>
         <StudiesController />
       </TestParent>
     );

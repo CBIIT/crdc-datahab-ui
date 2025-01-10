@@ -5,8 +5,8 @@ import { ReactComponent as CloseIconSvg } from "../../assets/icons/close_icon.sv
 import CollaboratorsTable from "./CollaboratorsTable";
 import { useCollaboratorsContext } from "../Contexts/CollaboratorsContext";
 import { useSubmissionContext } from "../Contexts/SubmissionContext";
-import { canModifyCollaboratorsRoles } from "../../config/AuthRoles";
 import { Status as AuthStatus, useAuthContext } from "../Contexts/AuthContext";
+import { hasPermission } from "../../config/AuthPermissions";
 
 const StyledDialog = styled(Dialog)({
   "& .MuiDialog-paper": {
@@ -111,11 +111,9 @@ const CollaboratorsDialog = ({ onClose, onSave, open, ...rest }: Props) => {
   const isLoading = collaboratorLoading || status === AuthStatus.LOADING;
   const canModifyCollaborators = useMemo(
     () =>
-      canModifyCollaboratorsRoles.includes(user?.role) &&
-      (submission?.getSubmission?.submitterID === user?._id ||
-        (user?.role === "Organization Owner" &&
-          user?.organization?.orgID === submission?.getSubmission?.organization?._id)),
-    [canModifyCollaboratorsRoles, user, submission?.getSubmission]
+      hasPermission(user, "data_submission", "create", null, true) &&
+      submission?.getSubmission?.submitterID === user?._id,
+    [user, submission?.getSubmission]
   );
 
   useEffect(() => {
@@ -174,9 +172,9 @@ const CollaboratorsDialog = ({ onClose, onSave, open, ...rest }: Props) => {
         Collaborators
       </StyledHeader>
       <StyledDescription data-testid="collaborators-dialog-description">
-        Below is a list of collaborators who have been granted access to this data submission. Each
-        collaborator can view or edit the submission based on the permissions assigned by the
-        submission creator.
+        Below is a list of collaborators who have been granted access to this data submission. Once
+        added, each collaborator can contribute to the submission by uploading data, running
+        validations, and submitting.
       </StyledDescription>
 
       <form id="manage-collaborators-dialog-form" onSubmit={handleOnSave}>

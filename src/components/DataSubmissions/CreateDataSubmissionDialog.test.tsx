@@ -10,7 +10,14 @@ import {
   ContextState as AuthCtxState,
   Status as AuthStatus,
 } from "../Contexts/AuthContext";
-import { CREATE_SUBMISSION, CreateSubmissionResp, GetMyUserResp } from "../../graphql";
+import {
+  CREATE_SUBMISSION,
+  CreateSubmissionResp,
+  GetMyUserResp,
+  LIST_APPROVED_STUDIES,
+  ListApprovedStudiesInput,
+  ListApprovedStudiesResp,
+} from "../../graphql";
 
 const baseStudies: GetMyUserResp["getMyUser"]["studies"] = [
   {
@@ -71,6 +78,8 @@ const baseUser: Omit<User, "role"> = {
   dataCommons: [],
   createdAt: "",
   updateAt: "",
+  permissions: ["data_submission:create"],
+  notifications: [],
 };
 
 const baseAuthCtx: AuthCtxState = {
@@ -974,118 +983,118 @@ describe("Implementation Requirements", () => {
   });
 
   // NOTE: We're just random-testing against the opposite of the RequiresStudiesAssigned variable
-  // it.each<UserRole>(["Data Curator", "Data Commons POC"])(
-  //   "should fetch all of the studies if the user's role is %s",
-  //   async (role) => {
-  //     const mockMatcher = jest.fn().mockImplementation(() => true);
-  //     const listApprovedStudiesMock: MockedResponse<
-  //       ListApprovedStudiesResp,
-  //       ListApprovedStudiesInput
-  //     > = {
-  //       request: {
-  //         query: LIST_APPROVED_STUDIES,
-  //       },
-  //       variableMatcher: mockMatcher,
-  //       result: {
-  //         data: {
-  //           listApprovedStudies: {
-  //             total: 1,
-  //             studies: [
-  //               {
-  //                 _id: "study1",
-  //                 studyName: "study-1-from-api",
-  //                 studyAbbreviation: "study-1-from-api-abbr",
-  //                 dbGaPID: "",
-  //                 controlledAccess: false,
-  //               },
-  //               {
-  //                 _id: "study2",
-  //                 studyName: "study-2-from-api",
-  //                 studyAbbreviation: "study-2-from-api-abbr",
-  //                 dbGaPID: "",
-  //                 controlledAccess: false,
-  //               },
-  //             ] as ApprovedStudy[],
-  //           },
-  //         },
-  //       },
-  //     };
+  it.each<UserRole>(["Data Commons Personnel"])(
+    "should fetch all of the studies if the user's role is %s",
+    async (role) => {
+      const mockMatcher = jest.fn().mockImplementation(() => true);
+      const listApprovedStudiesMock: MockedResponse<
+        ListApprovedStudiesResp,
+        ListApprovedStudiesInput
+      > = {
+        request: {
+          query: LIST_APPROVED_STUDIES,
+        },
+        variableMatcher: mockMatcher,
+        result: {
+          data: {
+            listApprovedStudies: {
+              total: 1,
+              studies: [
+                {
+                  _id: "study1",
+                  studyName: "study-1-from-api",
+                  studyAbbreviation: "study-1-from-api-abbr",
+                  dbGaPID: "",
+                  controlledAccess: false,
+                },
+                {
+                  _id: "study2",
+                  studyName: "study-2-from-api",
+                  studyAbbreviation: "study-2-from-api-abbr",
+                  dbGaPID: "",
+                  controlledAccess: false,
+                },
+              ] as ApprovedStudy[],
+            },
+          },
+        },
+      };
 
-  //     const { getByRole } = render(<CreateDataSubmissionDialog onCreate={jest.fn()} />, {
-  //       wrapper: (p) => (
-  //         <TestParent
-  //           mocks={[listApprovedStudiesMock]}
-  //           authCtxState={{ ...baseAuthCtx, user: { ...baseUser, role } }}
-  //           {...p}
-  //         />
-  //       ),
-  //     });
+      const { getByRole } = render(<CreateDataSubmissionDialog onCreate={jest.fn()} />, {
+        wrapper: (p) => (
+          <TestParent
+            mocks={[listApprovedStudiesMock]}
+            authCtxState={{ ...baseAuthCtx, user: { ...baseUser, role } }}
+            {...p}
+          />
+        ),
+      });
 
-  //     userEvent.click(getByRole("button", { name: "Create a Data Submission" }));
+      userEvent.click(getByRole("button", { name: "Create a Data Submission" }));
 
-  //     await waitFor(() => {
-  //       expect(mockMatcher).toHaveBeenCalledTimes(1); // Ensure the listApprovedStudies query was called
-  //     });
-  //   }
-  // );
+      await waitFor(() => {
+        expect(mockMatcher).toHaveBeenCalledTimes(1); // Ensure the listApprovedStudies query was called
+      });
+    }
+  );
 
-  // it("should fetch all of the studies if the user's assigned studies contains the 'All' study", async () => {
-  //   const mockMatcher = jest.fn().mockImplementation(() => true);
-  //   const listApprovedStudiesMock: MockedResponse<
-  //     ListApprovedStudiesResp,
-  //     ListApprovedStudiesInput
-  //   > = {
-  //     request: {
-  //       query: LIST_APPROVED_STUDIES,
-  //     },
-  //     variableMatcher: mockMatcher,
-  //     result: {
-  //       data: {
-  //         listApprovedStudies: {
-  //           total: 1,
-  //           studies: [
-  //             {
-  //               _id: "study1",
-  //               studyName: "study-1-from-api",
-  //               studyAbbreviation: "study-1-from-api-abbr",
-  //               dbGaPID: "",
-  //               controlledAccess: false,
-  //             },
-  //           ] as ApprovedStudy[],
-  //         },
-  //       },
-  //     },
-  //   };
+  it("should fetch all of the studies if the user's assigned studies contains the 'All' study", async () => {
+    const mockMatcher = jest.fn().mockImplementation(() => true);
+    const listApprovedStudiesMock: MockedResponse<
+      ListApprovedStudiesResp,
+      ListApprovedStudiesInput
+    > = {
+      request: {
+        query: LIST_APPROVED_STUDIES,
+      },
+      variableMatcher: mockMatcher,
+      result: {
+        data: {
+          listApprovedStudies: {
+            total: 1,
+            studies: [
+              {
+                _id: "study1",
+                studyName: "study-1-from-api",
+                studyAbbreviation: "study-1-from-api-abbr",
+                dbGaPID: "",
+                controlledAccess: false,
+              },
+            ] as ApprovedStudy[],
+          },
+        },
+      },
+    };
 
-  //   const { getByRole } = render(<CreateDataSubmissionDialog onCreate={jest.fn()} />, {
-  //     wrapper: (p) => (
-  //       <TestParent
-  //         mocks={[listApprovedStudiesMock]}
-  //         authCtxState={{
-  //           ...baseAuthCtx,
-  //           user: {
-  //             ...baseUser,
-  //             role: "Federal Lead",
-  //             studies: [
-  //               {
-  //                 _id: "All", // This is the important part
-  //                 studyAbbreviation: "",
-  //                 studyName: "",
-  //                 dbGaPID: "",
-  //                 controlledAccess: false,
-  //               },
-  //             ],
-  //           },
-  //         }}
-  //         {...p}
-  //       />
-  //     ),
-  //   });
+    const { getByRole } = render(<CreateDataSubmissionDialog onCreate={jest.fn()} />, {
+      wrapper: (p) => (
+        <TestParent
+          mocks={[listApprovedStudiesMock]}
+          authCtxState={{
+            ...baseAuthCtx,
+            user: {
+              ...baseUser,
+              role: "Federal Lead",
+              studies: [
+                {
+                  _id: "All", // This is the important part
+                  studyAbbreviation: "",
+                  studyName: "",
+                  dbGaPID: "",
+                  controlledAccess: false,
+                },
+              ],
+            },
+          }}
+          {...p}
+        />
+      ),
+    });
 
-  //   userEvent.click(getByRole("button", { name: "Create a Data Submission" }));
+    userEvent.click(getByRole("button", { name: "Create a Data Submission" }));
 
-  //   await waitFor(() => {
-  //     expect(mockMatcher).toHaveBeenCalledTimes(1); // Ensure the listApprovedStudies query was called
-  //   });
-  // });
+    await waitFor(() => {
+      expect(mockMatcher).toHaveBeenCalledTimes(1); // Ensure the listApprovedStudies query was called
+    });
+  });
 });

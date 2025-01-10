@@ -10,7 +10,7 @@ import { useSubmissionContext } from "../Contexts/SubmissionContext";
 import { useAuthContext } from "../Contexts/AuthContext";
 import { DELETE_DATA_RECORDS, DeleteDataRecordsInput, DeleteDataRecordsResp } from "../../graphql";
 import { titleCase } from "../../utils";
-import { canDeleteDataNodesRoles } from "../../config/AuthRoles";
+import { hasPermission } from "../../config/AuthPermissions";
 
 const StyledIconButton = styled(IconButton)(({ disabled }) => ({
   opacity: disabled ? 0.26 : 1,
@@ -137,7 +137,7 @@ const DeleteNodeDataButton = ({ nodeType, selectedItems, disabled, onDelete, ...
     }
   };
 
-  if (!canDeleteDataNodesRoles.includes(user?.role)) {
+  if (!hasPermission(user, "data_submission", "create", data?.getSubmission)) {
     return null;
   }
 

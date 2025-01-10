@@ -32,9 +32,9 @@ import usePageTitle from "../../hooks/usePageTitle";
 import GenericTable, { Column } from "../../components/GenericTable";
 import QuestionnaireContext from "./Contexts/QuestionnaireContext";
 import TruncatedText from "../../components/TruncatedText";
-import { CanCreateSubmissionRequest } from "../../config/AuthRoles";
 import StyledTooltip from "../../components/StyledFormComponents/StyledTooltip";
 import Tooltip from "../../components/Tooltip";
+import { hasPermission } from "../../config/AuthPermissions";
 
 type T = ListApplicationsResp["listApplications"]["applications"][number];
 
@@ -210,10 +210,8 @@ const columns: Column<T>[] = [
     renderValue: (a) => (
       <QuestionnaireContext.Consumer>
         {({ user, handleOnReviewClick }) => {
-          const role = user?.role;
-
           if (
-            CanCreateSubmissionRequest.includes(role) &&
+            hasPermission(user, "submission_request", "create") &&
             a.applicant?.applicantID === user._id &&
             ["New", "In Progress", "Inquired"].includes(a.status)
           ) {
@@ -225,7 +223,10 @@ const columns: Column<T>[] = [
               </Link>
             );
           }
-          if (role === "Federal Lead" && ["Submitted", "In Review"].includes(a.status)) {
+          if (
+            hasPermission(user, "submission_request", "review") &&
+            ["Submitted", "In Review"].includes(a.status)
+          ) {
             return (
               <StyledActionButton
                 onClick={() => handleOnReviewClick(a)}
@@ -394,7 +395,7 @@ const ListingView: FC = () => {
         padding="57px 0 0 25px"
         body={
           <StyledBannerBody direction="row" alignItems="center" justifyContent="flex-end">
-            {CanCreateSubmissionRequest.includes(user?.role) && (
+            {hasPermission(user, "submission_request", "create") && (
               <StyledButton type="button" onClick={createApp} loading={creatingApplication}>
                 Start a Submission Request
               </StyledButton>

@@ -1,11 +1,4 @@
 import * as utils from "./profileUtils";
-import { formatName } from "./stringUtils";
-
-jest.mock("./stringUtils", () => ({
-  formatName: jest.fn(),
-}));
-
-const mockFormatName = formatName as jest.Mock;
 
 describe("formatIDP cases", () => {
   it("should format NIH IDP", () => {
@@ -41,30 +34,15 @@ describe("userToCollaborator cases", () => {
       _id: "user-1",
       firstName: "John",
       lastName: "Doe",
-      organization: {
-        orgID: "org-1",
-        orgName: "Organization 1",
-        status: "Active",
-        createdAt: "",
-        updateAt: "",
-      },
     };
-
-    mockFormatName.mockReturnValue("John Doe");
 
     const collaborator = utils.userToCollaborator(user);
 
     expect(collaborator).toEqual({
       collaboratorID: "user-1",
-      collaboratorName: "John Doe",
-      permission: "Can View",
-      Organization: {
-        orgID: "org-1",
-        orgName: "Organization 1",
-      },
+      collaboratorName: "Doe, John",
+      permission: "Can Edit",
     });
-
-    expect(mockFormatName).toHaveBeenCalledWith("John", "Doe");
   });
 
   it("should use provided permission", () => {
@@ -73,8 +51,6 @@ describe("userToCollaborator cases", () => {
       firstName: "John",
       lastName: "Doe",
     };
-
-    mockFormatName.mockReturnValue("John Doe");
 
     const collaborator = utils.userToCollaborator(user, "Can Edit");
 
@@ -87,12 +63,9 @@ describe("userToCollaborator cases", () => {
       lastName: "Doe",
     };
 
-    mockFormatName.mockReturnValue("Doe");
-
     const collaborator = utils.userToCollaborator(user);
 
-    expect(collaborator.collaboratorName).toBe("Doe");
-    expect(mockFormatName).toHaveBeenCalledWith(undefined, "Doe");
+    expect(collaborator.collaboratorName).toBe("Doe, ");
   });
 
   it("should handle missing lastName", () => {
@@ -101,53 +74,9 @@ describe("userToCollaborator cases", () => {
       firstName: "John",
     };
 
-    mockFormatName.mockReturnValue("John");
-
     const collaborator = utils.userToCollaborator(user);
 
-    expect(collaborator.collaboratorName).toBe("John");
-    expect(mockFormatName).toHaveBeenCalledWith("John", undefined);
-  });
-
-  it("should handle missing organization", () => {
-    const user: Partial<User> = {
-      _id: "user-1",
-      firstName: "John",
-      lastName: "Doe",
-    };
-
-    mockFormatName.mockReturnValue("John Doe");
-
-    const collaborator = utils.userToCollaborator(user);
-
-    expect(collaborator.Organization).toEqual({
-      orgID: undefined,
-      orgName: undefined,
-    });
-  });
-
-  it("should handle missing organization orgID and orgName", () => {
-    const user: Partial<User> = {
-      _id: "user-1",
-      firstName: "John",
-      lastName: "Doe",
-      organization: {
-        orgID: "",
-        orgName: "",
-        status: "Active",
-        createdAt: "",
-        updateAt: "",
-      },
-    };
-
-    mockFormatName.mockReturnValue("John Doe");
-
-    const collaborator = utils.userToCollaborator(user);
-
-    expect(collaborator.Organization).toEqual({
-      orgID: "",
-      orgName: "",
-    });
+    expect(collaborator.collaboratorName).toBe(", John");
   });
 
   it("should handle missing _id", () => {
@@ -155,8 +84,6 @@ describe("userToCollaborator cases", () => {
       firstName: "John",
       lastName: "Doe",
     };
-
-    mockFormatName.mockReturnValue("John Doe");
 
     const collaborator = utils.userToCollaborator(user);
 
@@ -168,15 +95,9 @@ describe("userToCollaborator cases", () => {
 
     expect(collaborator).toEqual({
       collaboratorID: undefined,
-      collaboratorName: formatName(undefined, undefined),
-      permission: "Can View",
-      Organization: {
-        orgID: undefined,
-        orgName: undefined,
-      },
+      collaboratorName: ", ",
+      permission: "Can Edit",
     });
-
-    expect(mockFormatName).toHaveBeenCalledWith(undefined, undefined);
   });
 
   it("should handle undefined user", () => {
@@ -184,15 +105,9 @@ describe("userToCollaborator cases", () => {
 
     expect(collaborator).toEqual({
       collaboratorID: undefined,
-      collaboratorName: formatName(undefined, undefined),
-      permission: "Can View",
-      Organization: {
-        orgID: undefined,
-        orgName: undefined,
-      },
+      collaboratorName: ", ",
+      permission: "Can Edit",
     });
-
-    expect(mockFormatName).toHaveBeenCalledWith(undefined, undefined);
   });
 
   it("should handle user with empty properties", () => {
@@ -200,30 +115,15 @@ describe("userToCollaborator cases", () => {
       _id: "",
       firstName: "",
       lastName: "",
-      organization: {
-        orgID: "",
-        orgName: "",
-        status: "Active",
-        createdAt: "",
-        updateAt: "",
-      },
     };
-
-    mockFormatName.mockReturnValue("");
 
     const collaborator = utils.userToCollaborator(user);
 
     expect(collaborator).toEqual({
       collaboratorID: "",
-      collaboratorName: "",
-      permission: "Can View",
-      Organization: {
-        orgID: "",
-        orgName: "",
-      },
+      collaboratorName: ", ",
+      permission: "Can Edit",
     });
-
-    expect(mockFormatName).toHaveBeenCalledWith("", "");
   });
 
   it("should handle user with additional properties", () => {
@@ -233,29 +133,201 @@ describe("userToCollaborator cases", () => {
       lastName: "Doe",
       email: "john.doe@example.com",
       role: "Admin",
-      organization: {
-        orgID: "org-1",
-        orgName: "Organization 1",
-        status: "Active",
-        createdAt: "",
-        updateAt: "",
-      },
     };
-
-    mockFormatName.mockReturnValue("John Doe");
 
     const collaborator = utils.userToCollaborator(user);
 
     expect(collaborator).toEqual({
       collaboratorID: "user-1",
-      collaboratorName: "John Doe",
-      permission: "Can View",
-      Organization: {
-        orgID: "org-1",
-        orgName: "Organization 1",
-      },
+      collaboratorName: "Doe, John",
+      permission: "Can Edit",
     });
+  });
+});
 
-    expect(mockFormatName).toHaveBeenCalledWith("John", "Doe");
+describe("columnizePBACGroups cases", () => {
+  const baseDefault: PBACDefault = {
+    _id: "access:request", // The _id field is not actually used by the util
+    name: "",
+    group: "",
+    order: 0,
+    checked: false,
+    disabled: false,
+  };
+
+  it("should return empty array for invalid input", () => {
+    expect(utils.columnizePBACGroups([])).toEqual([]);
+    expect(utils.columnizePBACGroups(null)).toEqual([]);
+    expect(utils.columnizePBACGroups(undefined)).toEqual([]);
+  });
+
+  it("should group PBACDefaults into columns using the default colCount", () => {
+    const pbacDefaults: PBACDefault[] = [
+      { ...baseDefault, name: "1", group: "A" },
+      { ...baseDefault, name: "2", group: "A" },
+      { ...baseDefault, name: "3", group: "B" },
+      { ...baseDefault, name: "4", group: "B" },
+      { ...baseDefault, name: "5", group: "C" },
+      { ...baseDefault, name: "6", group: "C" },
+    ];
+
+    const columnized = utils.columnizePBACGroups(pbacDefaults);
+
+    expect(columnized).toHaveLength(3);
+    expect(columnized[0]).toHaveLength(1);
+    expect(columnized[1]).toHaveLength(1);
+    expect(columnized[2]).toHaveLength(1);
+
+    expect(columnized[0][0].data).toEqual([
+      { ...baseDefault, name: "1", group: "A" },
+      { ...baseDefault, name: "2", group: "A" },
+    ]);
+
+    expect(columnized[1][0].data).toEqual([
+      { ...baseDefault, name: "3", group: "B" },
+      { ...baseDefault, name: "4", group: "B" },
+    ]);
+
+    expect(columnized[2][0].data).toEqual([
+      { ...baseDefault, name: "5", group: "C" },
+      { ...baseDefault, name: "6", group: "C" },
+    ]);
+  });
+
+  it("should group PBACDefaults into columns using a custom colCount", () => {
+    const pbacDefaults: PBACDefault[] = [
+      { ...baseDefault, name: "1", group: "A" },
+      { ...baseDefault, name: "2", group: "B" },
+      { ...baseDefault, name: "3", group: "C" },
+      { ...baseDefault, name: "4", group: "D" },
+      { ...baseDefault, name: "5", group: "E" },
+      { ...baseDefault, name: "6", group: "F" },
+    ];
+
+    const columnized = utils.columnizePBACGroups(pbacDefaults, 2);
+
+    expect(columnized).toHaveLength(2);
+    expect(columnized[0]).toHaveLength(1);
+    expect(columnized[1]).toHaveLength(5);
+  });
+
+  it("should handle a higher colCount than the number of groups", () => {
+    const pbacDefaults: PBACDefault[] = [
+      { ...baseDefault, name: "1", group: "A" },
+      { ...baseDefault, name: "2", group: "B" },
+      { ...baseDefault, name: "3", group: "C" },
+    ];
+
+    const columnized = utils.columnizePBACGroups(pbacDefaults, 10);
+
+    expect(columnized).toHaveLength(3);
+    expect(columnized[0]).toHaveLength(1);
+    expect(columnized[1]).toHaveLength(1);
+    expect(columnized[2]).toHaveLength(1);
+  });
+
+  it("should handle PBACDefaults with no group", () => {
+    const pbacDefaults: PBACDefault[] = [
+      { ...baseDefault, name: "1", group: "A" },
+      { ...baseDefault, name: "2", group: "B" },
+      { ...baseDefault, name: "3", group: "" },
+    ];
+
+    const columnized = utils.columnizePBACGroups(pbacDefaults);
+
+    expect(columnized).toHaveLength(3);
+    expect(columnized[0]).toHaveLength(1);
+    expect(columnized[1]).toHaveLength(1);
+    expect(columnized[2]).toHaveLength(1);
+
+    expect(columnized[2][0].data).toEqual([{ ...baseDefault, name: "3", group: "" }]);
+  });
+
+  it("should fallback to an empty group name if the PBACDefault has an invalid group name", () => {
+    const pbacDefaults: PBACDefault[] = [
+      { ...baseDefault, name: "1", group: "valid" },
+      { ...baseDefault, name: "2", group: undefined },
+      { ...baseDefault, name: "3", group: null },
+      { ...baseDefault, name: "4", group: 3 as unknown as string },
+      { ...baseDefault, name: "5", group: { Obj: "yes" } as unknown as string },
+    ];
+
+    const columnized = utils.columnizePBACGroups(pbacDefaults, 10); // Set to 10 to ensure all groups COULD go to their own column
+
+    expect(columnized).toHaveLength(2);
+    expect(columnized[0]).toHaveLength(1);
+    expect(columnized[1]).toHaveLength(1); // 1 Group for all invalid
+
+    expect(columnized[0][0].data).toEqual([{ ...baseDefault, name: "1", group: "valid" }]);
+    expect(columnized[1][0].name).toBe("");
+    expect(columnized[1][0].data).toHaveLength(4); // All invalid groups are together
+    expect(columnized[1][0].data).toEqual([
+      pbacDefaults[1],
+      pbacDefaults[2],
+      pbacDefaults[3],
+      pbacDefaults[4],
+    ]);
+  });
+
+  it("should sort the groups in the order: Submission Request, Data Submission, Admin, Miscellaneous", () => {
+    const pbacDefaults: PBACDefault[] = [
+      { ...baseDefault, name: "6", group: "Random Group 1" }, // 5
+      { ...baseDefault, name: "1", group: "Data Submission" }, // 2
+      { ...baseDefault, name: "3", group: "Miscellaneous" }, // 4
+      { ...baseDefault, name: "2", group: "Admin" }, // 3
+      { ...baseDefault, name: "4", group: "Submission Request" }, // 1
+    ];
+
+    const columnized = utils.columnizePBACGroups(pbacDefaults, 4);
+
+    expect(columnized).toHaveLength(4);
+    expect(columnized[0]).toHaveLength(1);
+    expect(columnized[1]).toHaveLength(1);
+    expect(columnized[2]).toHaveLength(1);
+    expect(columnized[3]).toHaveLength(2);
+
+    expect(columnized[0][0].data).toEqual([
+      { ...baseDefault, name: "4", group: "Submission Request" },
+    ]);
+    expect(columnized[1][0].data).toEqual([
+      { ...baseDefault, name: "1", group: "Data Submission" },
+    ]);
+    expect(columnized[2][0].data).toEqual([{ ...baseDefault, name: "2", group: "Admin" }]);
+    expect(columnized[3][0].data).toEqual([{ ...baseDefault, name: "3", group: "Miscellaneous" }]);
+    expect(columnized[3][1].data).toEqual([{ ...baseDefault, name: "6", group: "Random Group 1" }]);
+  });
+
+  it("should sort the options within each group by their order", () => {
+    const pbacDefaults: PBACDefault[] = [
+      { ...baseDefault, name: "entry 1", group: "Group01", order: 5 },
+      { ...baseDefault, name: "entry 2", group: "Group01", order: 1 },
+      { ...baseDefault, name: "entry 3", group: "Group01", order: 3 },
+      { ...baseDefault, name: "entry 4", group: "Group01", order: 2 },
+      { ...baseDefault, name: "entry 5", group: "Group01", order: 4 },
+    ];
+
+    const columnized = utils.columnizePBACGroups(pbacDefaults);
+    expect(columnized[0][0].data).toEqual([
+      { ...baseDefault, name: "entry 2", group: "Group01", order: 1 },
+      { ...baseDefault, name: "entry 4", group: "Group01", order: 2 },
+      { ...baseDefault, name: "entry 3", group: "Group01", order: 3 },
+      { ...baseDefault, name: "entry 5", group: "Group01", order: 4 },
+      { ...baseDefault, name: "entry 1", group: "Group01", order: 5 },
+    ]);
+  });
+
+  it("should leave the order unchanged if 'order' is null", () => {
+    const pbacDefaults: PBACDefault[] = [
+      { ...baseDefault, name: "entry 1", group: "Group01", order: null },
+      { ...baseDefault, name: "entry 2", group: "Group01", order: null },
+      { ...baseDefault, name: "entry 3", group: "Group01", order: null },
+    ];
+
+    const columnized = utils.columnizePBACGroups(pbacDefaults);
+    expect(columnized[0][0].data).toEqual([
+      { ...baseDefault, name: "entry 1", group: "Group01", order: null },
+      { ...baseDefault, name: "entry 2", group: "Group01", order: null },
+      { ...baseDefault, name: "entry 3", group: "Group01", order: null },
+    ]);
   });
 });

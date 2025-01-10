@@ -31,6 +31,15 @@ const cache = new InMemoryCache({
     Collaborator: {
       keyFields: ["collaboratorID"],
     },
+    PBACDefaults: {
+      keyFields: ["role"],
+    },
+    Permission: {
+      keyFields: false,
+    },
+    Notification: {
+      keyFields: false,
+    },
   },
 });
 

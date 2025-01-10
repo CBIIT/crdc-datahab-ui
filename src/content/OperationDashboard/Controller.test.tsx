@@ -19,7 +19,7 @@ jest.mock("../../hooks/usePageTitle", () => ({
 }));
 
 // NOTE: Omitting fields depended on by the component
-const baseUser: Omit<User, "role"> = {
+const baseUser: Omit<User, "role" | "permissions"> = {
   _id: "",
   firstName: "",
   lastName: "",
@@ -30,10 +30,12 @@ const baseUser: Omit<User, "role"> = {
   createdAt: "",
   updateAt: "",
   studies: null,
+  notifications: [],
 };
 
 type ParentProps = {
-  role: User["role"];
+  role: UserRole;
+  permissions?: AuthPermissions[];
   initialEntry?: string;
   mocks?: MockedResponse[];
   ctxStatus?: AuthContextStatus;
@@ -42,6 +44,7 @@ type ParentProps = {
 
 const TestParent: FC<ParentProps> = ({
   role,
+  permissions = ["dashboard:view"],
   initialEntry = "/dashboard",
   mocks = [],
   ctxStatus = AuthContextStatus.LOADED,
@@ -51,7 +54,7 @@ const TestParent: FC<ParentProps> = ({
     () => ({
       status: ctxStatus,
       isLoggedIn: role !== null,
-      user: { ...baseUser, role },
+      user: { ...baseUser, role, permissions },
     }),
     [role, ctxStatus]
   );
@@ -193,15 +196,9 @@ describe("Basic Functionality", () => {
     });
   });
 
-  it.each<User["role"]>([
-    "User",
-    "Submitter",
-    "Organization Owner",
-    "Data Commons POC",
-    "fake role" as User["role"], // Asserting that a whitelist is used instead of a blacklist
-  ])("should redirect the user role %p to the home page", (role) => {
+  it("should redirect the user with missing permissions to the home page", async () => {
     const { getByText } = render(<Controller />, {
-      wrapper: (p) => <TestParent role={role} {...p} />,
+      wrapper: (p) => <TestParent role="Admin" {...p} permissions={[]} />,
     });
 
     expect(getByText("Root Page")).toBeInTheDocument();

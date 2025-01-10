@@ -22,13 +22,6 @@ type User = {
    */
   email: string;
   /**
-   * The user's organization if assigned, null otherwise
-   *
-   * @see {@link OrgInfo}
-   * @deprecated This field is deprecated and NOT populated by all APIs. Remove ASAP.
-   */
-  organization?: OrgInfo | null;
-  /**
    * List of data commons that the user has access to
    */
   dataCommons: string[];
@@ -48,6 +41,14 @@ type User = {
    */
   userStatus: "Active" | "Inactive" | "Disabled";
   /**
+   * The list of permissions granted to the user
+   */
+  permissions: AuthPermissions[];
+  /**
+   * The list of notifications the user will receive
+   */
+  notifications: AuthNotifications[];
+  /**
    * The last update date of the user object
    *
    * @note ISO 8601 format (YYYY-MM-DDTHH:mm:ss.sssZ)
@@ -61,15 +62,7 @@ type User = {
   createdAt: string;
 };
 
-type UserRole =
-  | "User"
-  | "Submitter"
-  | "Organization Owner"
-  | "Federal Monitor"
-  | "Federal Lead"
-  | "Data Curator"
-  | "Data Commons POC"
-  | "Admin";
+type UserRole = "User" | "Admin" | "Data Commons Personnel" | "Federal Lead" | "Submitter";
 
 type OrgInfo = {
   orgID: string;

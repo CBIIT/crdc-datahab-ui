@@ -65,7 +65,7 @@ export const useCollaboratorsContext = (): CollaboratorsCtxState => {
  */
 const defaultEmptyCollaborator: Collaborator = {
   collaboratorID: "",
-  permission: "Can View",
+  permission: "Can Edit",
 } as Collaborator;
 
 type ProviderProps = {
@@ -134,7 +134,7 @@ export const CollaboratorsProvider: FC<ProviderProps> = ({ children }) => {
   /**
    * Creates a new empty collaborator object
    *
-   * @returns {Collaborator} An empty Collaborator with "Can View" permission
+   * @returns {Collaborator} An empty Collaborator with "Can Edit" permission
    */
   const createEmptyCollaborator = (): Collaborator => ({ ...defaultEmptyCollaborator });
 
@@ -227,10 +227,7 @@ export const CollaboratorsProvider: FC<ProviderProps> = ({ children }) => {
     collaboratorIdx: number,
     newCollaborator: CollaboratorInput
   ): void => {
-    if (
-      isNaN(collaboratorIdx) ||
-      (!newCollaborator?.collaboratorID && !newCollaborator?.permission)
-    ) {
+    if (isNaN(collaboratorIdx) || !newCollaborator?.collaboratorID) {
       return;
     }
 
@@ -267,9 +264,9 @@ export const CollaboratorsProvider: FC<ProviderProps> = ({ children }) => {
    * @returns {Promise<Collaborator[]>} Promise resolving to the updated list of collaborators
    */
   const saveCollaborators = useCallback(async (): Promise<Collaborator[]> => {
-    const collaboratorsToSave = currentCollaborators
-      .filter((c) => !!c.collaboratorID && !!c.permission)
-      .map((c) => ({ collaboratorID: c.collaboratorID, permission: c.permission }));
+    const collaboratorsToSave: CollaboratorInput[] = currentCollaborators
+      .filter((c) => !!c.collaboratorID)
+      .map((c) => ({ collaboratorID: c.collaboratorID, permission: "Can Edit" }));
 
     try {
       const { data, errors } = await editSubmissionCollaborators({

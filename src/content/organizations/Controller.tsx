@@ -1,34 +1,36 @@
 import React from "react";
 import { Navigate, useParams } from "react-router-dom";
-import { useAuthContext } from "../../components/Contexts/AuthContext";
+import { Status, useAuthContext } from "../../components/Contexts/AuthContext";
 import { OrganizationProvider } from "../../components/Contexts/OrganizationListContext";
 import ListView from "./ListView";
 import OrganizationView from "./OrganizationView";
+import SuspenseLoader from "../../components/SuspenseLoader";
+import { hasPermission } from "../../config/AuthPermissions";
+
+const WrappedListView = () => (
+  <OrganizationProvider preload>
+    <ListView />
+  </OrganizationProvider>
+);
 
 /**
  * Renders the correct view based on the URL and permissions-tier
  *
- * @param {void} props - React props
- * @returns {FC} - React component
+ * @returns The Organization Controller component
  */
 const OrganizationController = () => {
   const { orgId } = useParams<{ orgId?: string }>();
-  const { user } = useAuthContext();
-  const isAdministrative = user?.role === "Admin";
+  const { user, status: authStatus } = useAuthContext();
 
-  if (!isAdministrative) {
+  if (authStatus === Status.LOADING) {
+    return <SuspenseLoader data-testid="studies-suspense-loader" />;
+  }
+
+  if (!hasPermission(user, "program", "manage")) {
     return <Navigate to="/" />;
   }
 
-  if (orgId) {
-    return <OrganizationView _id={orgId} />;
-  }
-
-  return (
-    <OrganizationProvider preload>
-      <ListView />
-    </OrganizationProvider>
-  );
+  return orgId ? <OrganizationView _id={orgId} /> : <WrappedListView />;
 };
 
 export default OrganizationController;

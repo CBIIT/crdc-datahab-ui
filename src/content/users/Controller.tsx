@@ -1,9 +1,10 @@
 import React from "react";
 import { Navigate, useParams } from "react-router-dom";
-import { useAuthContext } from "../../components/Contexts/AuthContext";
+import { Status, useAuthContext } from "../../components/Contexts/AuthContext";
 import ListView from "./ListView";
 import ProfileView from "./ProfileView";
-import { CanManageUsers } from "../../config/AuthRoles";
+import { hasPermission } from "../../config/AuthPermissions";
+import SuspenseLoader from "../../components/SuspenseLoader";
 
 type Props = {
   type: "users" | "profile";
@@ -29,27 +30,27 @@ type Props = {
  * which is shown to Admins and Org Owners, and allows them to see
  * the list of users.
  *
- * @param {Props} props - React props
- * @returns {FC} - React component
+ * @param type The type of view to render
+ * @returns The UserController component
  */
 const UserController = ({ type }: Props) => {
   const { userId } = useParams();
-  const { user } = useAuthContext();
-  const { _id, role } = user || {};
-  const isAdministrative = role && CanManageUsers.includes(role);
+  const { user, status: authStatus } = useAuthContext();
+  const { _id } = user || {};
+
+  if (authStatus === Status.LOADING) {
+    return <SuspenseLoader data-testid="users-suspense-loader" />;
+  }
 
   // Accounts can only view their own "profile", redirect to it
-  if ((type === "profile" && userId !== _id) || (type === "users" && !isAdministrative)) {
+  if (
+    (type === "profile" && userId !== _id) ||
+    (type === "users" && !hasPermission(user, "user", "manage"))
+  ) {
     return <Navigate to={`/profile/${_id}`} />;
   }
 
-  // Show list of users to Admin or Org Owner
-  if (!userId && isAdministrative) {
-    return <ListView />;
-  }
-
-  // Admin or Org Owner viewing a user's "Edit User" page or their own "Edit User" page
-  return <ProfileView _id={userId} viewType={type} />;
+  return userId ? <ProfileView _id={userId} viewType={type} /> : <ListView />;
 };
 
 export default UserController;

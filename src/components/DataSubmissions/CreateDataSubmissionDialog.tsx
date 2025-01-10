@@ -34,6 +34,7 @@ import BaseStyledHelperText from "../StyledFormComponents/StyledHelperText";
 import Tooltip from "../Tooltip";
 import { Logger, validateEmoji } from "../../utils";
 import { RequiresStudiesAssigned } from "../../config/AuthRoles";
+import { hasPermission } from "../../config/AuthPermissions";
 
 const CreateSubmissionDialog = styled(Dialog)({
   "& .MuiDialog-paper": {
@@ -259,7 +260,6 @@ const CreateDataSubmissionDialog: FC<Props> = ({ onCreate }) => {
     );
   }, [shouldFetchAllStudies, allStudies, user?.studies]);
 
-  const orgOwnerOrSubmitter = user?.role === "Organization Owner" || user?.role === "Submitter";
   const intention = watch("intention");
   const submissionTypeOptions: RadioOption[] = [
     {
@@ -574,7 +574,7 @@ const CreateDataSubmissionDialog: FC<Props> = ({ onCreate }) => {
         </StyledDialogActions>
       </CreateSubmissionDialog>
 
-      {orgOwnerOrSubmitter && (
+      {hasPermission(user, "data_submission", "create", null, true) && (
         <StyledTooltipWrapper alignItems="center" justifyContent="flex-end">
           <StyledButton
             type="button"

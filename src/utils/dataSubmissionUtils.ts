@@ -1,3 +1,4 @@
+import { hasPermission } from "../config/AuthPermissions";
 import { ADMIN_OVERRIDE_CONDITIONS, SUBMIT_BUTTON_CONDITIONS } from "../config/SubmitButtonConfig";
 import { safeParse } from "./jsonUtils";
 
@@ -7,22 +8,23 @@ import { safeParse } from "./jsonUtils";
  * to determine if the submission can be enabled.
  *
  * @param {Submission} submission - The submission object to evaluate.
- * @param {UserRole} userRole - The role of the user (e.g., Admin, Submitter).
+ * @param {QCResult[]} qcResults - The QC results for the submission.
+ * @param {User} user - The current user.
  * @returns {SubmitButtonResult} - Returns an object indicating whether the submit button is enabled,
  * whether the admin override is in effect, and an optional tooltip explaining why it is disabled.
  */
 export const shouldEnableSubmit = (
   submission: Submission,
   qcResults: Pick<QCResult, "errors">[],
-  userRole: UserRole
+  user: User
 ): SubmitButtonResult => {
-  if (!submission || !userRole) {
+  if (!submission || !user) {
     return { enabled: false, isAdminOverride: false };
   }
 
   // Check for potential Admin override
-  const isAdmin = userRole === "Admin";
-  if (isAdmin) {
+  const canAdminOverride = hasPermission(user, "data_submission", "admin_submit", submission);
+  if (canAdminOverride) {
     const adminOverrideResult = shouldAllowAdminOverride(submission, qcResults);
     if (adminOverrideResult.enabled) {
       return { ...adminOverrideResult };

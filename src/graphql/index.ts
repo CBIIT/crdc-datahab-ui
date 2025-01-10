@@ -149,6 +149,12 @@ export type { Input as EditUserInput, Response as EditUserResp } from "./editUse
 export { mutation as REQUEST_ACCESS } from "./requestAccess";
 export type { Input as RequestAccessInput, Response as RequestAccessResp } from "./requestAccess";
 
+export { query as RETRIEVE_PBAC_DEFAULTS } from "./retrievePBACDefaults";
+export type {
+  Input as RetrievePBACDefaultsInput,
+  Response as RetrievePBACDefaultsResp,
+} from "./retrievePBACDefaults";
+
 // Organizations
 export { query as LIST_ORGS } from "./listOrganizations";
 export type { Response as ListOrgsResp } from "./listOrganizations";

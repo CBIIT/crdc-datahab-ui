@@ -14,7 +14,8 @@ import StyledLabel from "../../components/StyledFormComponents/StyledLabel";
 import SuspenseLoader from "../../components/SuspenseLoader";
 import bannerSvg from "../../assets/banner/submission_banner.png";
 import { useAuthContext } from "../../components/Contexts/AuthContext";
-import { Logger } from "../../utils";
+import { addDataCommonsParameter, addStudiesParameter } from "../../utils";
+import { RequiresStudiesAssigned } from "../../config/AuthRoles";
 
 export type DashboardViewProps = {
   url: string;
@@ -87,32 +88,28 @@ const DashboardView: FC<DashboardViewProps> = ({
   const dashboardElementRef = useRef<HTMLDivElement>(null);
 
   const contentParameters = useMemo<DashboardContentOptions["parameters"]>(() => {
-    const { role, studies, dataCommons } = user || {};
-    const params: DashboardContentOptions["parameters"] = [];
-
-    if (role === "Federal Monitor" && Array.isArray(studies) && studies.length > 0) {
-      params.push({
-        Name: "studiesParameter",
-        Values: studies?.map((study: ApprovedStudy) => study?._id),
-      });
-    } else if (role === "Federal Monitor") {
-      Logger.error("This role requires studies to be set but none were found.", studies);
-      params.push({ Name: "studiesParameter", Values: ["NO-CONTENT"] });
+    if (!user?.role) {
+      return [];
     }
 
-    if (role === "Data Curator" && Array.isArray(dataCommons) && dataCommons.length > 0) {
-      params.push({ Name: "dataCommonsParameter", Values: dataCommons });
-    } else if (role === "Data Curator") {
-      Logger.error("This role requires dataCommons to be set but none were found.", dataCommons);
-      params.push({ Name: "dataCommonsParameter", Values: ["NO-CONTENT"] });
+    const { role } = user;
+
+    if (RequiresStudiesAssigned.includes(role)) {
+      return addStudiesParameter(user);
     }
 
-    return params;
+    if (role === "Data Commons Personnel") {
+      return addDataCommonsParameter(user);
+    }
+
+    return [];
   }, [user]);
 
   const handleDashboardChange = (e: SelectChangeEvent) => {
     setSearchParams({ type: e.target.value });
-    dashboardElementRef.current.innerHTML = "";
+    if (dashboardElementRef.current) {
+      dashboardElementRef.current.innerHTML = "";
+    }
     setEmbeddedDashboard(null);
   };
 

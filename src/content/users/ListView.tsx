@@ -19,7 +19,6 @@ import PageBanner from "../../components/PageBanner";
 import { Roles } from "../../config/AuthRoles";
 import { LIST_USERS, ListUsersResp } from "../../graphql";
 import { compareStrings, formatIDP, sortData } from "../../utils";
-import { useAuthContext, Status as AuthStatus } from "../../components/Contexts/AuthContext";
 import usePageTitle from "../../hooks/usePageTitle";
 import GenericTable, { Column } from "../../components/GenericTable";
 import { useSearchParamsContext } from "../../components/Contexts/SearchParamsContext";
@@ -215,7 +214,6 @@ const columns: Column<T>[] = [
 const ListingView: FC = () => {
   usePageTitle("Manage Users");
 
-  const { status: authStatus } = useAuthContext();
   const { state } = useLocation();
   const { searchParams, setSearchParams } = useSearchParamsContext();
   const [dataset, setDataset] = useState<T[]>([]);
@@ -378,7 +376,7 @@ const ListingView: FC = () => {
           columns={columns}
           data={dataset || []}
           total={count || 0}
-          loading={loading || authStatus === AuthStatus.LOADING}
+          loading={loading}
           disableUrlParams={false}
           defaultRowsPerPage={20}
           defaultOrder="asc"

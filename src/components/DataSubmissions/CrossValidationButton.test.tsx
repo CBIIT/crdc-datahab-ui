@@ -84,6 +84,8 @@ const baseUser: Omit<User, "role"> = {
   dataCommons: [],
   createdAt: "",
   updateAt: "",
+  permissions: ["data_submission:view", "data_submission:review"],
+  notifications: [],
 };
 
 type ParentProps = {
@@ -510,44 +512,46 @@ describe("Implementation Requirements", () => {
     }
   );
 
-  it.each<User["role"]>(["Data Curator", "Admin"])(
-    "should always render for the role %s with Other Submissions present",
-    (role) => {
-      const { getByTestId } = render(
-        <TestParent authCtxState={{ ...baseAuthCtx, user: { ...baseUser, role } }}>
-          <CrossValidationButton
-            submission={{
-              ...baseSubmission,
-              status: "Submitted",
-              _id: `render-role-test-${role}-id`,
-              crossSubmissionStatus: null,
-              otherSubmissions: JSON.stringify({
-                "In Progress": [],
-                Submitted: ["submitted-id", "another-submitted-id"],
-                Released: [],
-              }),
-            }}
-          />
-        </TestParent>
-      );
-
-      expect(getByTestId("cross-validate-button")).toBeInTheDocument();
-    }
-  );
-
-  it.each<User["role"]>([
-    "Submitter",
-    "Organization Owner",
-    "Federal Lead",
-    "Data Commons POC",
-    "fake role" as User["role"],
-  ])("should never render for the role %s", (role) => {
+  it("should always render for user with the required permissions while other Submissions are present", () => {
     const { getByTestId } = render(
-      <TestParent authCtxState={{ ...baseAuthCtx, user: { ...baseUser, role } }}>
+      <TestParent
+        authCtxState={{
+          ...baseAuthCtx,
+          user: {
+            ...baseUser,
+            role: "Admin",
+            permissions: ["data_submission:view", "data_submission:review"],
+          },
+        }}
+      >
         <CrossValidationButton
           submission={{
             ...baseSubmission,
-            _id: `role-test-${role}-id`,
+            status: "Submitted",
+            _id: `render-role-test-id`,
+            crossSubmissionStatus: null,
+            otherSubmissions: JSON.stringify({
+              "In Progress": [],
+              Submitted: ["submitted-id", "another-submitted-id"],
+              Released: [],
+            }),
+          }}
+        />
+      </TestParent>
+    );
+
+    expect(getByTestId("cross-validate-button")).toBeInTheDocument();
+  });
+
+  it("should never render for user without the required permissions while other Submissions are present", () => {
+    const { getByTestId } = render(
+      <TestParent
+        authCtxState={{ ...baseAuthCtx, user: { ...baseUser, role: "Admin", permissions: [] } }}
+      >
+        <CrossValidationButton
+          submission={{
+            ...baseSubmission,
+            _id: `role-test-id`,
             status: "Submitted",
             crossSubmissionStatus: null,
             otherSubmissions: JSON.stringify({

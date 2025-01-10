@@ -11,7 +11,7 @@ import {
 } from "../../graphql";
 import { safeParse } from "../../utils";
 import { useSubmissionContext } from "../Contexts/SubmissionContext";
-import { CrossValidateRoles } from "../../config/AuthRoles";
+import { hasPermission } from "../../config/AuthPermissions";
 
 const StyledValidateButton = styled(LoadingButton)({
   padding: "10px",
@@ -116,8 +116,7 @@ export const CrossValidationButton: FC<Props> = ({ submission, ...props }) => {
   }, [crossSubmissionStatus]);
 
   if (
-    !user?.role ||
-    !CrossValidateRoles.includes(user.role) ||
+    !hasPermission(user, "data_submission", "review", submission) ||
     !hasOtherSubmissions ||
     status !== "Submitted"
   ) {

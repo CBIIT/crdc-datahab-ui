@@ -196,27 +196,3 @@ export const isStringLengthBetween = (
 
   return str?.length > minLength && str?.length < maxLength;
 };
-
-/**
- * Formats a person's name as "lastName, firstName" or returns the available name if one is missing.
- * If both names are missing, returns an empty string.
- *
- * @param firstName - The person's first name.
- * @param lastName - The person's last name.
- * @returns The formatted name.
- */
-export const formatName = (firstName?: string, lastName?: string): string => {
-  const trimmedFirstName = typeof firstName === "string" ? firstName?.trim() : "";
-  const trimmedLastName = typeof lastName === "string" ? lastName?.trim() : "";
-
-  if (trimmedFirstName && trimmedLastName) {
-    return `${trimmedLastName}, ${trimmedFirstName}`;
-  }
-  if (trimmedLastName) {
-    return trimmedLastName;
-  }
-  if (trimmedFirstName) {
-    return trimmedFirstName;
-  }
-  return "";
-};

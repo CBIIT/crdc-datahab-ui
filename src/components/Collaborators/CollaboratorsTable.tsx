@@ -1,9 +1,7 @@
 import React from "react";
 import {
-  FormControlLabel,
   IconButton,
   MenuItem,
-  RadioGroup,
   Stack,
   styled,
   Table,
@@ -12,13 +10,10 @@ import {
   TableContainer,
   TableHead,
   TableRow,
-  TooltipProps,
 } from "@mui/material";
 import AddCircleIcon from "@mui/icons-material/AddCircle";
 import { isEqual } from "lodash";
-import StyledTooltip from "../StyledFormComponents/StyledTooltip";
 import { TOOLTIP_TEXT } from "../../config/DashboardTooltips";
-import StyledFormRadioButton from "../Questionnaire/StyledRadioButton";
 import { ReactComponent as RemoveIconSvg } from "../../assets/icons/remove_icon.svg";
 import AddRemoveButton from "../AddRemoveButton";
 import TruncatedText from "../TruncatedText";
@@ -100,47 +95,6 @@ const StyledNameCell = styled(StyledTableCell)({
   },
 });
 
-const StyledRadioControl = styled(FormControlLabel)({
-  fontFamily: "Nunito",
-  fontSize: "16px",
-  fontWeight: "500",
-  lineHeight: "20px",
-  textAlign: "left",
-  color: "#083A50",
-  "&:last-child": {
-    marginRight: "0px",
-    minWidth: "unset",
-  },
-});
-
-const StyledRadioGroup = styled(RadioGroup)({
-  width: "100%",
-  justifyContent: "center",
-  alignItems: "center",
-  gap: "14px",
-  "& .MuiFormControlLabel-root": {
-    margin: 0,
-    "&.Mui-disabled": {
-      cursor: "not-allowed",
-    },
-  },
-  "& .MuiFormControlLabel-asterisk": {
-    display: "none",
-  },
-  "& .MuiSelect-select .notranslate": {
-    display: "inline-block",
-    minHeight: "38px",
-  },
-  "& .MuiRadio-root.Mui-disabled .radio-icon": {
-    background: "#FFF !important",
-    opacity: 0.4,
-  },
-});
-
-const StyledRadioButton = styled(StyledFormRadioButton)({
-  padding: "0 7px 0 0",
-});
-
 const StyledRemoveButton = styled(IconButton)(({ theme }) => ({
   color: "#C05239",
   padding: "5px",
@@ -177,24 +131,6 @@ const StyledSelect = styled(StyledFormSelect)({
   },
 });
 
-const CustomTooltip = (props: TooltipProps) => (
-  <StyledTooltip
-    {...props}
-    slotProps={{
-      popper: {
-        modifiers: [
-          {
-            name: "offset",
-            options: {
-              offset: [0, -2],
-            },
-          },
-        ],
-      },
-    }}
-  />
-);
-
 type Props = {
   /**
    * Indicates whether the table will allow edititing of collaborators
@@ -222,17 +158,6 @@ const CollaboratorsTable = ({ isEdit }: Props) => {
               <StyledTableHeaderCell id="header-collaborator" data-testid="header-collaborator">
                 Collaborator
               </StyledTableHeaderCell>
-              <StyledTableHeaderCell id="header-organization" data-testid="header-organization">
-                Collaborator <br />
-                Organization
-              </StyledTableHeaderCell>
-              <StyledTableHeaderCell
-                id="header-access"
-                sx={{ textAlign: "center" }}
-                data-testid="header-access"
-              >
-                Access
-              </StyledTableHeaderCell>
               {isEdit && (
                 <StyledTableHeaderCell
                   id="header-remove"
@@ -251,7 +176,7 @@ const CollaboratorsTable = ({ isEdit }: Props) => {
                 key={`collaborator_${idx}_${collaborator.collaboratorID}`}
                 data-testid={`collaborator-row-${idx}`}
               >
-                <StyledNameCell width="24.8%">
+                <StyledNameCell width="100%">
                   <StyledSelect
                     value={collaborator.collaboratorID || ""}
                     onChange={(e) =>
@@ -271,7 +196,7 @@ const CollaboratorsTable = ({ isEdit }: Props) => {
                     renderValue={() => (
                       <TruncatedText
                         text={collaborator.collaboratorName ?? " "}
-                        maxCharacters={10}
+                        maxCharacters={35}
                         underline={false}
                         ellipsis
                       />
@@ -290,69 +215,8 @@ const CollaboratorsTable = ({ isEdit }: Props) => {
                       ))}
                   </StyledSelect>
                 </StyledNameCell>
-                <StyledTableCell width="24%" data-testid={`collaborator-org-${idx}`}>
-                  <TruncatedText
-                    text={collaborator?.Organization?.orgName}
-                    maxCharacters={10}
-                    underline={false}
-                    ellipsis
-                  />
-                </StyledTableCell>
-                <StyledTableCell width="37.76%" data-testid={`collaborator-access-${idx}`}>
-                  <Stack direction="row" justifyContent="center" alignItems="center">
-                    <StyledRadioGroup
-                      value={collaborator?.permission || ""}
-                      onChange={(e, val: CollaboratorPermissions) =>
-                        handleUpdateCollaborator(idx, {
-                          collaboratorID: collaborator?.collaboratorID,
-                          permission: val,
-                        })
-                      }
-                      data-testid={`collaborator-permissions-${idx}`}
-                      aria-labelledby="header-access"
-                      row
-                    >
-                      <CustomTooltip
-                        placement="top"
-                        title={TOOLTIP_TEXT.COLLABORATORS_DIALOG.PERMISSIONS.CAN_VIEW}
-                        disableHoverListener={false}
-                        disableInteractive
-                      >
-                        <StyledRadioControl
-                          value="Can View"
-                          control={
-                            <StyledRadioButton
-                              readOnly={loading || !isEdit}
-                              disabled={loading || !isEdit}
-                              required
-                            />
-                          }
-                          label="Can View"
-                        />
-                      </CustomTooltip>
-                      <CustomTooltip
-                        placement="top"
-                        title={TOOLTIP_TEXT.COLLABORATORS_DIALOG.PERMISSIONS.CAN_EDIT}
-                        disableHoverListener={false}
-                        disableInteractive
-                      >
-                        <StyledRadioControl
-                          value="Can Edit"
-                          control={
-                            <StyledRadioButton
-                              readOnly={loading || !isEdit}
-                              disabled={loading || !isEdit}
-                              required
-                            />
-                          }
-                          label="Can Edit"
-                        />
-                      </CustomTooltip>
-                    </StyledRadioGroup>
-                  </Stack>
-                </StyledTableCell>
                 {isEdit && (
-                  <StyledTableCell width="13.44%">
+                  <StyledTableCell>
                     <Stack direction="row" justifyContent="center" alignItems="center">
                       <StyledRemoveButton
                         onClick={() => handleRemoveCollaborator(idx)}

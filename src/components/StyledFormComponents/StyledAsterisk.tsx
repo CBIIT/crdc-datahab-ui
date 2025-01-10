@@ -1,6 +1,7 @@
+import { forwardRef } from "react";
 import { styled } from "@mui/material";
 
-const Asterisk = styled("span")(() => ({
+const StyledAsterisk = styled("span")(() => ({
   color: "#C93F08",
   marginLeft: "2px",
   fontWeight: 700,
@@ -9,6 +10,12 @@ const Asterisk = styled("span")(() => ({
   lineHeight: "18.8px",
 }));
 
-const StyledAsterisk = () => <Asterisk>*</Asterisk>;
+const Asterisk = forwardRef<HTMLSpanElement, React.HTMLAttributes<HTMLSpanElement>>(
+  (props, ref) => (
+    <StyledAsterisk ref={ref} {...props}>
+      *
+    </StyledAsterisk>
+  )
+);
 
-export default StyledAsterisk;
+export default Asterisk;

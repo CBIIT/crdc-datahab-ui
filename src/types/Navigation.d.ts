@@ -22,12 +22,13 @@ type NavBarItem = {
    */
   className: "navMobileItem" | "navMobileItem clickable";
   /**
-   * Defines RBAC for the Navigation Item
+   * Defines a list of permissions necessary for the Navigation Item to be shown
    *
    * Guide:
-   * - If the value is an array, the current user must be in one of the roles to see the item
+   * - Provide a list of permission the user must have to access the content
+   *   otherwise it will be hidden
    */
-  roles?: User["role"][];
+  permissions?: AuthPermissions[];
 };
 
 type NavBarSubItem = {
@@ -68,6 +69,14 @@ type NavBarSubItem = {
    * @note Only works if the className is `navMobileSubItem action`
    */
   onClick?: () => void;
+  /**
+   * Defines a list of permissions necessary for the Navigation Sub Item to be shown
+   *
+   * Guide:
+   * - Provide a list of permission the user must have to access the content
+   *   otherwise it will be hidden
+   */
+  permissions?: AuthPermissions[];
 };
 
 type FooterConfiguration = {

@@ -5,8 +5,7 @@ import Logo from "./LogoMobile";
 import menuClearIcon from "../../../assets/header/Menu_Cancel_Icon.svg";
 import rightArrowIcon from "../../../assets/header/Right_Arrow.svg";
 import leftArrowIcon from "../../../assets/header/Left_Arrow.svg";
-import { navMobileList, navbarSublists } from "../../../config/HeaderConfig";
-import { GenerateApiTokenRoles } from "../../../config/AuthRoles";
+import { HeaderLinks, HeaderSubLinks } from "../../../config/HeaderConfig";
 import { useAuthContext } from "../../Contexts/AuthContext";
 import GenericAlert from "../../GenericAlert";
 import APITokenDialog from "../../APITokenDialog";
@@ -132,7 +131,7 @@ const Header = () => {
   const [navMobileDisplay, setNavMobileDisplay] = useState("none");
   const [openAPITokenDialog, setOpenAPITokenDialog] = useState<boolean>(false);
   const [uploaderToolOpen, setUploaderToolOpen] = useState<boolean>(false);
-  const [selectedList, setSelectedList] = useState<NavBarItem[] | NavBarSubItem[]>(navMobileList);
+  const [selectedList, setSelectedList] = useState<NavBarItem[] | NavBarSubItem[]>(HeaderLinks);
   const [showLogoutAlert, setShowLogoutAlert] = useState<boolean>(false);
   const [restorePath, setRestorePath] = useState<string | null>(null);
 
@@ -147,7 +146,7 @@ const Header = () => {
     }
   };
 
-  navbarSublists[displayName] = [
+  HeaderSubLinks[displayName] = [
     {
       name: "User Profile",
       link: `/profile/${user?._id}`,
@@ -161,6 +160,34 @@ const Header = () => {
       className: "navMobileSubItem action",
     },
     {
+      name: "API Token",
+      onClick: () => setOpenAPITokenDialog(true),
+      id: "navbar-dropdown-item-api-token",
+      className: "navMobileSubItem action",
+      permissions: ["data_submission:create"],
+    },
+    {
+      name: "Manage Studies",
+      link: "/studies",
+      id: "navbar-dropdown-item-studies-manage",
+      className: "navMobileSubItem",
+      permissions: ["study:manage"],
+    },
+    {
+      name: "Manage Programs",
+      link: "/programs",
+      id: "navbar-dropdown-item-program-manage",
+      className: "navMobileSubItem",
+      permissions: ["program:manage"],
+    },
+    {
+      name: "Manage Users",
+      link: "/users",
+      id: "navbar-dropdown-item-user-manage",
+      className: "navMobileSubItem",
+      permissions: ["user:manage"],
+    },
+    {
       name: "Logout",
       link: "/logout",
       id: "navbar-dropdown-item-logout",
@@ -168,42 +195,9 @@ const Header = () => {
     },
   ];
 
-  if (user?.role === "Admin" || user?.role === "Organization Owner") {
-    navbarSublists[displayName].splice(1, 0, {
-      name: "Manage Users",
-      link: "/users",
-      id: "navbar-dropdown-item-user-manage",
-      className: "navMobileSubItem",
-    });
-  }
-  if (user?.role === "Admin") {
-    navbarSublists[displayName].splice(1, 0, {
-      name: "Manage Programs",
-      link: "/programs",
-      id: "navbar-dropdown-item-program-manage",
-      className: "navMobileSubItem",
-    });
-  }
-  if (user?.role === "Admin") {
-    navbarSublists[displayName].splice(1, 0, {
-      name: "Manage Studies",
-      link: "/studies",
-      id: "navbar-dropdown-item-studies-manage",
-      className: "navMobileSubItem",
-    });
-  }
-  if (user?.role && GenerateApiTokenRoles.includes(user?.role)) {
-    navbarSublists[displayName].splice(1, 0, {
-      name: "API Token",
-      onClick: () => setOpenAPITokenDialog(true),
-      id: "navbar-dropdown-item-api-token",
-      className: "navMobileSubItem action",
-    });
-  }
-
   const clickNavItem = (e) => {
     const clickTitle = e.target.textContent;
-    setSelectedList(navbarSublists[clickTitle]);
+    setSelectedList(HeaderSubLinks[clickTitle]);
   };
 
   useEffect(() => {
@@ -258,7 +252,7 @@ const Header = () => {
             >
               <img className="closeIconImg" src={menuClearIcon} alt="menuClearButton" />
             </div>
-            {selectedList !== navMobileList && (
+            {selectedList !== HeaderLinks && (
               <div
                 role="button"
                 id="navbar-back-to-main-menu-button"
@@ -266,21 +260,21 @@ const Header = () => {
                 className="backButton"
                 onKeyDown={(e) => {
                   if (e.key === "Enter") {
-                    setSelectedList(navMobileList);
+                    setSelectedList(HeaderLinks);
                   }
                 }}
-                onClick={() => setSelectedList(navMobileList)}
+                onClick={() => setSelectedList(HeaderLinks)}
               >
                 Main Menu
               </div>
             )}
             <div className="navMobileContainer">
-              {selectedList?.map((navMobileItem) => {
-                // If the user is not logged in and the item requires a role, don't show it
+              {selectedList?.map((navMobileItem: NavBarItem | NavBarSubItem) => {
                 if (
-                  "roles" in navMobileItem &&
-                  Array.isArray(navMobileItem?.roles) &&
-                  !navMobileItem.roles.includes(user?.role)
+                  navMobileItem?.permissions?.length > 0 &&
+                  !navMobileItem?.permissions?.every(
+                    (permission: AuthPermissions) => user?.permissions?.includes(permission)
+                  )
                 ) {
                   return null;
                 }
@@ -351,7 +345,7 @@ const Header = () => {
                               setNavMobileDisplay("none");
                               if (navMobileItem.name === "Logout") {
                                 handleLogout();
-                                setSelectedList(navMobileList);
+                                setSelectedList(HeaderLinks);
                               }
                             }
                           }}
@@ -359,7 +353,7 @@ const Header = () => {
                             setNavMobileDisplay("none");
                             if (navMobileItem.name === "Logout") {
                               handleLogout();
-                              setSelectedList(navMobileList);
+                              setSelectedList(HeaderLinks);
                             }
                           }}
                         >
@@ -374,7 +368,7 @@ const Header = () => {
                 );
               })}
               {/* eslint-disable-next-line no-nested-ternary */}
-              {selectedList === navMobileList ? (
+              {selectedList === HeaderLinks ? (
                 isLoggedIn ? (
                   <div
                     id="navbar-dropdown-name"

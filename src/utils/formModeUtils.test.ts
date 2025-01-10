@@ -13,6 +13,8 @@ describe("getFormMode tests based on provided requirements", () => {
     updateAt: "2023-05-02T09:23:30Z",
     studies: null,
     dataCommons: [],
+    permissions: [],
+    notifications: [],
   };
 
   // submission created by baseUser and part of the same org
@@ -32,7 +34,11 @@ describe("getFormMode tests based on provided requirements", () => {
 
   // User Tests
   describe("getFormMode > User tests", () => {
-    const user: User = { ...baseUser, role: "User" };
+    const user: User = {
+      ...baseUser,
+      role: "Submitter",
+      permissions: ["submission_request:create", "submission_request:submit"],
+    };
 
     it("should allow User to edit when form status is New", () => {
       expect(utils.getFormMode(user, baseSubmission)).toBe(utils.FormModes.EDIT);
@@ -72,7 +78,11 @@ describe("getFormMode tests based on provided requirements", () => {
 
   // Submitter Tests
   describe("getFormMode > Submitter tests", () => {
-    const user: User = { ...baseUser, role: "Submitter" };
+    const user: User = {
+      ...baseUser,
+      role: "Submitter",
+      permissions: ["submission_request:create", "submission_request:submit"],
+    };
 
     it("should allow Submitter to edit when form status is New", () => {
       expect(utils.getFormMode(user, baseSubmission)).toBe(utils.FormModes.EDIT);
@@ -99,7 +109,15 @@ describe("getFormMode tests based on provided requirements", () => {
 
   // Federal Lead Tests
   describe("getFormMode > Fed Lead tests", () => {
-    const user: User = { ...baseUser, role: "Federal Lead" };
+    const user: User = {
+      ...baseUser,
+      role: "Federal Lead",
+      permissions: [
+        "submission_request:view",
+        "submission_request:submit",
+        "submission_request:review",
+      ],
+    };
 
     it("should set Review mode for Fed Lead when status is 'In Review'", () => {
       expect(utils.getFormMode(user, { ...baseSubmission, status: "In Review" })).toBe(
@@ -138,45 +156,9 @@ describe("getFormMode tests based on provided requirements", () => {
     });
   });
 
-  // Org Owner Tests
-  describe("getFormMode > Org Owner tests", () => {
-    const user: User = { ...baseUser, role: "Organization Owner" };
-
-    it("should allow Org Owner to edit their own unsubmitted or inquired forms", () => {
-      const statuses: ApplicationStatus[] = ["New", "In Progress", "Inquired"];
-
-      statuses.forEach((status) => {
-        expect(utils.getFormMode(user, { ...baseSubmission, status })).toBe(utils.FormModes.EDIT);
-      });
-    });
-
-    it("should set View Only for Org Owner when form is Submitted, In Review, Approved, or Rejected", () => {
-      const statuses: ApplicationStatus[] = ["Submitted", "In Review", "Approved", "Rejected"];
-
-      statuses.forEach((status) => {
-        expect(utils.getFormMode(user, { ...baseSubmission, status })).toBe(
-          utils.FormModes.VIEW_ONLY
-        );
-      });
-    });
-
-    it("should be View Only mode for any Submission when Org Owner does not own the Submission", () => {
-      const submission: Application = {
-        ...baseSubmission,
-        status: "In Progress",
-        applicant: {
-          ...baseSubmission.applicant,
-          applicantID: "user-456-another-user",
-        },
-      };
-
-      expect(utils.getFormMode(user, submission)).toBe(utils.FormModes.VIEW_ONLY);
-    });
-  });
-
   // Admin Tests
   describe("getFormMode > Admin tests", () => {
-    const user: User = { ...baseUser, role: "Admin" };
+    const user: User = { ...baseUser, role: "Admin", permissions: ["submission_request:view"] };
 
     it("should always set View Only for Admin", () => {
       const statuses: ApplicationStatus[] = [
@@ -212,12 +194,7 @@ describe("getFormMode tests based on provided requirements", () => {
 
   // Other role Tests
   describe("getFormMode > Other roles tests", () => {
-    it("should always set View Only for all other roles", () => {
-      const roles: User["role"][] = [
-        "Data Commons POC",
-        "Some other role",
-        "This role doesn't exist",
-      ] as unknown as User["role"][];
+    it("should always set View Only for all other roles with the required view permissions", () => {
       const statuses: ApplicationStatus[] = [
         "New",
         "In Progress",
@@ -228,13 +205,15 @@ describe("getFormMode tests based on provided requirements", () => {
         "Inquired",
       ];
 
-      roles.forEach((role) => {
-        const user: User = { ...baseUser, role };
-        statuses.forEach((status) => {
-          expect(utils.getFormMode(user, { ...baseSubmission, status })).toBe(
-            utils.FormModes.VIEW_ONLY
-          );
-        });
+      const user: User = {
+        ...baseUser,
+        role: "Data Commons Personnel",
+        permissions: ["submission_request:view"],
+      };
+      statuses.forEach((status) => {
+        expect(utils.getFormMode(user, { ...baseSubmission, status })).toBe(
+          utils.FormModes.VIEW_ONLY
+        );
       });
     });
   });
@@ -242,15 +221,26 @@ describe("getFormMode tests based on provided requirements", () => {
   // New Rejected status tests
   describe("getFormMode > New Rejected status test", () => {
     it("rejected is a final state, no role should be able to do anything past rejected", () => {
-      const roles: User["role"][] = [
-        "Data Commons POC",
-        "Some other role",
-        "This role doesn't exist",
-      ] as unknown as User["role"][];
+      const roles: UserRole[] = [
+        "Data Commons Personnel",
+        "Admin",
+        "Federal Lead",
+        "Submitter",
+        "User",
+      ];
       const status: ApplicationStatus = "Rejected";
 
       roles.forEach((role) => {
-        const user: User = { ...baseUser, role };
+        const user: User = {
+          ...baseUser,
+          role,
+          permissions: [
+            "submission_request:create",
+            "submission_request:view",
+            "submission_request:submit",
+            "submission_request:review",
+          ],
+        };
         expect(utils.getFormMode(user, { ...baseSubmission, status })).toBe(
           utils.FormModes.VIEW_ONLY
         );
@@ -269,21 +259,24 @@ describe("getFormMode tests based on provided requirements", () => {
           applicantID: "user-456-another-user",
         },
       };
-      const fedLead: User = { ...baseUser, role: "Organization Owner" };
+      const fedLead: User = {
+        ...baseUser,
+        role: "Federal Lead",
+        permissions: [
+          "submission_request:view",
+          "submission_request:submit",
+          "submission_request:review",
+        ],
+      };
       const submitterOwner: User = {
         ...baseUser,
         role: "Submitter",
-        _id: "user-456-another-user",
-      };
-      const orgOwnerSubmissionOwner: User = {
-        ...baseUser,
-        role: "Organization Owner",
+        permissions: ["submission_request:create", "submission_request:submit"],
         _id: "user-456-another-user",
       };
 
       expect(utils.getFormMode(fedLead, submission)).toBe(utils.FormModes.VIEW_ONLY);
       expect(utils.getFormMode(submitterOwner, submission)).toBe(utils.FormModes.EDIT);
-      expect(utils.getFormMode(orgOwnerSubmissionOwner, submission)).toBe(utils.FormModes.EDIT);
     });
   });
 
@@ -304,20 +297,24 @@ describe("getFormMode tests based on provided requirements", () => {
         expect(utils.getFormMode(null, null)).toBe(utils.FormModes.UNAUTHORIZED);
       });
 
-      it("should set Unauthorized form if user role is undefined", () => {
-        const user: User = { ...baseUser, role: undefined };
+      it("should set Unauthorized form if user does not have the required permissions and is not submission owner", () => {
+        const user: User = { ...baseUser, role: undefined, permissions: [] };
+        const submission: Application = {
+          ...baseSubmission,
+          applicant: { ...baseSubmission.applicant, applicantID: "some-other-user" },
+        };
 
-        expect(utils.getFormMode(user, baseSubmission)).toBe(utils.FormModes.UNAUTHORIZED);
+        expect(utils.getFormMode(user, submission)).toBe(utils.FormModes.UNAUTHORIZED);
       });
 
-      it("should set Unauthorized if form status is unknown or not defined", () => {
-        const user: User = { ...baseUser, role: "User" };
+      it("should set 'View Only' if form status is unknown or not defined", () => {
+        const user: User = { ...baseUser, role: "User", permissions: ["submission_request:view"] };
         const submission: Application = {
           ...baseSubmission,
           status: undefined,
         };
 
-        expect(utils.getFormMode(user, submission)).toBe(utils.FormModes.UNAUTHORIZED);
+        expect(utils.getFormMode(user, submission)).toBe(utils.FormModes.VIEW_ONLY);
       });
     });
   });

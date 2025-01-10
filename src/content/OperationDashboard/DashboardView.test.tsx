@@ -9,7 +9,7 @@ import {
 } from "../../components/Contexts/AuthContext";
 import DashboardView from "./DashboardView";
 
-const baseUser: Omit<User, "role"> = {
+const baseUser: Omit<User, "role" | "permissions"> = {
   _id: "",
   firstName: "",
   lastName: "",
@@ -20,17 +20,25 @@ const baseUser: Omit<User, "role"> = {
   createdAt: "",
   updateAt: "",
   studies: null,
+  notifications: [],
 };
 
-const MockParent: FC<{ role?: UserRole; children: React.ReactElement }> = ({
+type ParentProps = {
+  role?: UserRole;
+  permissions?: AuthPermissions[];
+  children: React.ReactElement;
+};
+
+const MockParent: FC<ParentProps> = ({
   role = "Admin",
+  permissions = ["dashboard:view"],
   children,
 }) => {
   const baseAuthCtx: AuthContextState = useMemo<AuthContextState>(
     () => ({
       status: AuthContextStatus.LOADED,
       isLoggedIn: role !== null,
-      user: { ...baseUser, role },
+      user: { ...baseUser, role, permissions },
     }),
     [role]
   );

@@ -1,3 +1,5 @@
+import { hasPermission } from "../config/AuthPermissions";
+
 /**
  * Translates the Validation Type radio to an array of types to validate.
  *
@@ -25,15 +27,13 @@ export const getValidationTypes = (validationType: ValidationType | "All"): Vali
  */
 export const getDefaultValidationType = (
   dataSubmission: Submission,
-  user: User,
-  permissionMap: Partial<Record<Submission["status"], User["role"][]>>
+  user: User
 ): ValidationType | "All" => {
-  const { role } = user || {};
   const { status, metadataValidationStatus, fileValidationStatus } = dataSubmission || {};
 
   if (
     status === "Submitted" &&
-    permissionMap["Submitted"]?.includes(role) &&
+    hasPermission(user, "data_submission", "review", dataSubmission) &&
     metadataValidationStatus &&
     fileValidationStatus
   ) {
@@ -58,13 +58,11 @@ export const getDefaultValidationType = (
  */
 export const getDefaultValidationTarget = (
   dataSubmission: Submission,
-  user: User,
-  permissionMap: Partial<Record<Submission["status"], User["role"][]>>
+  user: User
 ): ValidationTarget => {
-  const { role } = user || {};
   const { status } = dataSubmission || {};
 
-  if (status === "Submitted" && permissionMap["Submitted"]?.includes(role)) {
+  if (status === "Submitted" && hasPermission(user, "data_submission", "review", dataSubmission)) {
     return "All";
   }
 

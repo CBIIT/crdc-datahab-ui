@@ -71,7 +71,7 @@ type Props = {
   onClose: () => void;
 } & Omit<DialogProps, "onClose">;
 
-const RoleOptions: UserRole[] = ["Submitter", "Organization Owner"];
+const RoleOptions: UserRole[] = ["Submitter"];
 
 /**
  * Provides a dialog for users to request access to a specific role.

@@ -28,9 +28,9 @@ import { useSearchParamsContext } from "../../components/Contexts/SearchParamsCo
 import { useSubmissionContext } from "../../components/Contexts/SubmissionContext";
 import DataActivity, { DataActivityRef } from "./DataActivity";
 import CrossValidation from "./CrossValidation";
-import { CrossValidateRoles, SubmitDataSubmissionRoles } from "../../config/AuthRoles";
 import CopyAdornment from "../../components/DataSubmissions/CopyAdornment";
 import { Logger } from "../../utils";
+import { hasPermission } from "../../config/AuthPermissions";
 
 const StyledBanner = styled("div")(({ bannerSrc }: { bannerSrc: string }) => ({
   background: `url(${bannerSrc})`,
@@ -168,7 +168,6 @@ const DataSubmission: FC<Props> = ({ submissionId, tab = URLTabs.UPLOAD_ACTIVITY
   const dataSubmissionListPageUrl = `/data-submissions${
     lastSearchParams?.["/data-submissions"] ?? ""
   }`;
-  const isValidTab = tab && Object.values(URLTabs).includes(tab);
   const activityRef = useRef<DataActivityRef>(null);
   const hasUploadingBatches = useMemo<boolean>(
     () => data?.batchStatusList?.batches?.some((b) => b.status === "Uploading"),
@@ -176,21 +175,22 @@ const DataSubmission: FC<Props> = ({ submissionId, tab = URLTabs.UPLOAD_ACTIVITY
   );
   const crossValidationVisible: boolean = useMemo<boolean>(
     () =>
-      CrossValidateRoles.includes(user?.role) &&
+      hasPermission(user, "data_submission", "review", data?.getSubmission) &&
       data?.getSubmission?.crossSubmissionStatus !== null,
-    [user?.role, data?.getSubmission?.crossSubmissionStatus]
+    [user, data?.getSubmission]
   );
+  const isValidTab =
+    tab &&
+    Object.values(URLTabs).includes(tab) &&
+    (tab !== URLTabs.CROSS_VALIDATION_RESULTS || crossValidationVisible);
 
   const submitInfo: SubmitButtonResult = useMemo(() => {
-    if (!data?.getSubmission?._id || !SubmitDataSubmissionRoles.includes(user?.role)) {
-      return { enabled: false };
-    }
-    if (hasUploadingBatches) {
+    if (!data?.getSubmission?._id || hasUploadingBatches) {
       return { enabled: false };
     }
 
-    return shouldEnableSubmit(data.getSubmission, qcData?.submissionQCResults?.results, user?.role);
-  }, [data?.getSubmission, user, hasUploadingBatches, SubmitDataSubmissionRoles]);
+    return shouldEnableSubmit(data.getSubmission, qcData?.submissionQCResults?.results, user);
+  }, [data?.getSubmission, qcData?.submissionQCResults?.results, user, hasUploadingBatches]);
   const releaseInfo: ReleaseInfo = useMemo(
     () => shouldDisableRelease(data?.getSubmission),
     [data?.getSubmission?.crossSubmissionStatus, data?.getSubmission?.otherSubmissions]
@@ -261,6 +261,12 @@ const DataSubmission: FC<Props> = ({ submissionId, tab = URLTabs.UPLOAD_ACTIVITY
     }
   }, [error, qcError]);
 
+  useEffect(() => {
+    if (!isValidTab) {
+      navigate(`/data-submission/${submissionId}/${URLTabs.UPLOAD_ACTIVITY}`, { replace: true });
+    }
+  }, [isValidTab]);
+
   return (
     <StyledWrapper>
       <StyledBanner bannerSrc={bannerPng} />
@@ -317,7 +323,9 @@ const DataSubmission: FC<Props> = ({ submissionId, tab = URLTabs.UPLOAD_ACTIVITY
               {/* Primary Tab Content */}
               {tab === URLTabs.UPLOAD_ACTIVITY && <DataActivity ref={activityRef} />}
               {tab === URLTabs.VALIDATION_RESULTS && <QualityControl />}
-              {tab === URLTabs.CROSS_VALIDATION_RESULTS && <CrossValidation />}
+              {tab === URLTabs.CROSS_VALIDATION_RESULTS && crossValidationVisible && (
+                <CrossValidation />
+              )}
               {tab === URLTabs.SUBMITTED_DATA && <SubmittedData />}
 
               {/* Return to Data Submission List Button */}

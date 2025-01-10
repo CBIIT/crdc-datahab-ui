@@ -15,3 +15,4 @@ export * from "./searchParamUtils";
 export * from "./envUtils";
 export * from "./logger";
 export * from "./fetchUtils";
+export * from "./dashboardUtils";

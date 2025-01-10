@@ -241,20 +241,16 @@ describe("Implementation Requirements", () => {
 
   // NOTE: This component does not currently implement any authorization,
   // this is just future-proofing test coverage.
-  it.each<UserRole>([
-    "User",
-    "Submitter",
-    "Organization Owner",
-    "Federal Lead",
-    "Admin",
-    "fake role" as UserRole,
-  ])("should be enabled for the user role %s if they can access the page", (role) => {
-    const { getByTestId } = render(<ExportRequestButton />, {
-      wrapper: (p) => <TestParent userRole={role} {...p} />,
-    });
+  it.each<UserRole>(["User", "Submitter", "Federal Lead", "Admin", "fake role" as UserRole])(
+    "should be enabled for the user role %s if they can access the page",
+    (role) => {
+      const { getByTestId } = render(<ExportRequestButton />, {
+        wrapper: (p) => <TestParent userRole={role} {...p} />,
+      });
 
-    expect(getByTestId("export-submission-request-button")).toBeEnabled();
-  });
+      expect(getByTestId("export-submission-request-button")).toBeEnabled();
+    }
+  );
 
   it("should format the PDF filename as 'CRDCSubmissionPortal-Request-{studyAbbr}-{submittedDate}.pdf'", async () => {
     const mockFormObject: Partial<Application> = {

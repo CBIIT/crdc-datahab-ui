@@ -33,7 +33,7 @@ jest.mock("react-router-dom", () => ({
   useNavigate: () => mockNavigate,
 }));
 
-const baseUser: Omit<User, "role"> = {
+const baseUser: Omit<User, "role" | "permissions"> = {
   _id: "user-id",
   firstName: "",
   lastName: "",
@@ -44,6 +44,7 @@ const baseUser: Omit<User, "role"> = {
   createdAt: "",
   updateAt: "",
   studies: null,
+  notifications: [],
 };
 
 const defaultMocks: MockedResponse[] = [
@@ -73,6 +74,7 @@ type ParentProps = {
   mocks?: MockedResponse[];
   initialEntries?: MemoryRouterProps["initialEntries"];
   role?: UserRole;
+  permissions?: AuthPermissions[];
   children: React.ReactNode;
 };
 
@@ -80,13 +82,18 @@ const TestParent: FC<ParentProps> = ({
   mocks = defaultMocks,
   initialEntries = ["/"],
   role = "Submitter",
+  permissions = [
+    "submission_request:view",
+    "submission_request:create",
+    "submission_request:submit",
+  ],
   children,
 }: ParentProps) => {
   const baseAuthCtx: AuthContextState = useMemo<AuthContextState>(
     () => ({
       status: AuthStatus.LOADED,
       isLoggedIn: role !== null,
-      user: { ...baseUser, role },
+      user: { ...baseUser, role, permissions },
     }),
     [role]
   );
@@ -141,28 +148,21 @@ describe("ListView Component", () => {
     expect(mockUsePageTitle).toHaveBeenCalledWith("Submission Request List");
   });
 
-  it.each<UserRole>(["User", "Submitter", "Organization Owner"])(
-    "shows the 'Start a Submission Request' button for '%s' role",
-    (role) => {
-      const { getByText } = render(
-        <TestParent role={role}>
-          <ListView />
-        </TestParent>
-      );
-      expect(getByText("Start a Submission Request")).toBeInTheDocument();
-    }
-  );
+  it("shows the 'Start a Submission Request' button for users with the required permissions", () => {
+    const { getByText } = render(
+      <TestParent
+        role="Submitter"
+        permissions={["submission_request:view", "submission_request:create"]}
+      >
+        <ListView />
+      </TestParent>
+    );
+    expect(getByText("Start a Submission Request")).toBeInTheDocument();
+  });
 
-  it.each<UserRole>([
-    "Admin",
-    "Data Commons POC",
-    "Data Curator",
-    "Federal Lead",
-    "Federal Monitor",
-    "fake-role" as UserRole,
-  ])("should not show the 'Start a Submission Request' button for '%s' role", (role) => {
+  it("hides the 'Start a Submission Request' button for users missing the required permissions", () => {
     const { queryByText } = render(
-      <TestParent role={role}>
+      <TestParent role="Submitter" permissions={["submission_request:view"]}>
         <ListView />
       </TestParent>
     );
@@ -522,7 +522,15 @@ describe("ListView Component", () => {
     };
 
     const { getByText } = render(
-      <TestParent role="Federal Lead" mocks={[listApplicationsMock]}>
+      <TestParent
+        role="Federal Lead"
+        permissions={[
+          "submission_request:view",
+          "submission_request:review",
+          "submission_request:submit",
+        ]}
+        mocks={[listApplicationsMock]}
+      >
         <ListView />
       </TestParent>
     );

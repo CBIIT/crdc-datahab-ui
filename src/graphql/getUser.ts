@@ -18,6 +18,8 @@ export const query = gql`
         studyName
         studyAbbreviation
       }
+      permissions
+      notifications
     }
   }
 `;

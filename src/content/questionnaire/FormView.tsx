@@ -28,8 +28,8 @@ import bannerPng from "../../assets/banner/submission_banner.png";
 import { Status as AuthStatus, useAuthContext } from "../../components/Contexts/AuthContext";
 import usePageTitle from "../../hooks/usePageTitle";
 import ExportRequestButton from "../../components/ExportRequestButton";
-import { CanSubmitSubmissionRequestRoles } from "../../config/AuthRoles";
 import { Logger } from "../../utils";
+import { hasPermission } from "../../config/AuthPermissions";
 
 const StyledContainer = styled(Container)(() => ({
   "&.MuiContainer-root": {
@@ -393,50 +393,43 @@ const FormView: FC<Props> = ({ section }: Props) => {
       newData.sections.push({ name: activeSection, status: newStatus });
     }
 
-    // Skip state update if there are no changes
-    if (!isEqual(data.questionnaireData, newData)) {
-      const res = await setData(newData);
-      if (res?.status === "failed" && !!res?.errorMessage) {
-        enqueueSnackbar(
-          `An error occurred while saving the ${map[activeSection].title} section. ${res.errorMessage}`,
-          {
-            variant: "error",
-          }
-        );
-      } else {
-        enqueueSnackbar(
-          `Your changes for the ${map[activeSection].title} section have been successfully saved.`,
-          {
-            variant: "success",
-          }
-        );
-      }
+    const saveResult = await setData(newData);
+    if (saveResult?.status === "failed" && !!saveResult?.errorMessage) {
+      enqueueSnackbar(
+        `An error occurred while saving the ${map[activeSection].title} section. ${saveResult.errorMessage}`,
+        {
+          variant: "error",
+        }
+      );
+    } else {
+      enqueueSnackbar(
+        `Your changes for the ${map[activeSection].title} section have been successfully saved.`,
+        {
+          variant: "success",
+        }
+      );
+    }
 
-      if (
-        !blockedNavigate &&
-        res?.status === "success" &&
-        data["_id"] === "new" &&
-        res.id !== data?.["_id"]
-      ) {
-        // NOTE: This currently triggers a form data refetch, which is not ideal
-        navigate(`/submission/${res.id}/${activeSection}`, { replace: true });
-      }
+    if (
+      !blockedNavigate &&
+      saveResult?.status === "success" &&
+      data["_id"] === "new" &&
+      saveResult.id !== data?.["_id"]
+    ) {
+      // NOTE: This currently triggers a form data refetch, which is not ideal
+      navigate(`/submission/${saveResult.id}/${activeSection}`, { replace: true });
+    }
 
-      if (res?.status === "success") {
-        return {
-          status: "success",
-          id: res.id,
-        };
-      }
+    if (saveResult?.status === "success") {
       return {
-        status: "failed",
-        errorMessage: res?.errorMessage,
+        status: "success",
+        id: saveResult.id,
       };
     }
 
     return {
-      status: "success",
-      id: data?.["_id"],
+      status: "failed",
+      errorMessage: saveResult?.errorMessage,
     };
   };
 
@@ -538,15 +531,8 @@ const FormView: FC<Props> = ({ section }: Props) => {
   };
 
   const handleSubmitForm = () => {
-    if (
-      !CanSubmitSubmissionRequestRoles.includes(user?.role) ||
-      (data?.status !== "In Progress" &&
-        (data?.status !== "Inquired" || user?.role !== "Federal Lead"))
-    ) {
-      Logger.error("Invalid request to submit Submission Request form.", {
-        userRole: user?.role,
-        submissionStatus: data?.status,
-      });
+    if (!hasPermission(user, "submission_request", "submit", data)) {
+      Logger.error("Invalid request to submit Submission Request form.");
       return;
     }
     setOpenSubmitDialog(true);
@@ -626,15 +612,6 @@ const FormView: FC<Props> = ({ section }: Props) => {
       window.removeEventListener("beforeunload", unloadHandler);
     };
   });
-
-  useEffect(() => {
-    const formLoaded = status === FormStatus.LOADED && authStatus === AuthStatus.LOADED && data;
-    const invalidFormAuth = formMode === "Unauthorized" || authStatus === AuthStatus.ERROR || !user;
-
-    if (formLoaded && invalidFormAuth) {
-      navigate("/");
-    }
-  }, [formMode, navigate, status, authStatus, user, data]);
 
   useEffect(() => {
     const isComplete = isAllSectionsComplete();
@@ -730,9 +707,7 @@ const FormView: FC<Props> = ({ section }: Props) => {
               )}
 
               {activeSection === "REVIEW" &&
-                CanSubmitSubmissionRequestRoles.includes(user?.role) &&
-                (data?.status === "In Progress" ||
-                  (data?.status === "Inquired" && user?.role === "Federal Lead")) && (
+                hasPermission(user, "submission_request", "submit", data) && (
                   <StyledExtendedLoadingButton
                     id="submission-form-submit-button"
                     variant="contained"

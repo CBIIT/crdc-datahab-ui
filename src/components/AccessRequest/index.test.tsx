@@ -15,18 +15,18 @@ import {
   ListApprovedStudiesResp,
 } from "../../graphql";
 
-const mockUser: Omit<User, "role"> = {
+const mockUser: Omit<User, "role" | "permissions"> = {
   _id: "",
   firstName: "",
   lastName: "",
   email: "",
-  organization: null,
   dataCommons: [],
   studies: [],
   IDP: "nih",
   userStatus: "Active",
   updateAt: "",
   createdAt: "",
+  notifications: [],
 };
 
 const mockListApprovedStudies: MockedResponse<ListApprovedStudiesResp, ListApprovedStudiesInput> = {
@@ -47,15 +47,16 @@ const mockListApprovedStudies: MockedResponse<ListApprovedStudiesResp, ListAppro
 type MockParentProps = {
   mocks: MockedResponse[];
   role: UserRole;
+  permissions: AuthPermissions[];
   children: React.ReactNode;
 };
 
-const MockParent: FC<MockParentProps> = ({ mocks, role, children }) => {
+const MockParent: FC<MockParentProps> = ({ mocks, role, permissions, children }) => {
   const authValue: AuthContextState = useMemo<AuthContextState>(
     () => ({
       isLoggedIn: true,
       status: AuthContextStatus.LOADED,
-      user: { ...mockUser, role },
+      user: { ...mockUser, role, permissions },
     }),
     [role]
   );
@@ -70,7 +71,7 @@ const MockParent: FC<MockParentProps> = ({ mocks, role, children }) => {
 describe("Accessibility", () => {
   it("should not have any violations", async () => {
     const { container } = render(<AccessRequest />, {
-      wrapper: (p) => <MockParent {...p} mocks={[]} role="User" />,
+      wrapper: (p) => <MockParent {...p} mocks={[]} role="User" permissions={["access:request"]} />,
     });
 
     expect(await axe(container)).toHaveNoViolations();
@@ -80,7 +81,14 @@ describe("Accessibility", () => {
 describe("Basic Functionality", () => {
   it("should open the dialog when the 'Request Access' button is clicked", async () => {
     const { getByTestId, getByRole, queryByRole } = render(<AccessRequest />, {
-      wrapper: (p) => <MockParent {...p} mocks={[mockListApprovedStudies]} role="User" />,
+      wrapper: (p) => (
+        <MockParent
+          {...p}
+          mocks={[mockListApprovedStudies]}
+          role="User"
+          permissions={["access:request"]}
+        />
+      ),
     });
 
     expect(queryByRole("dialog")).not.toBeInTheDocument();
@@ -94,34 +102,16 @@ describe("Basic Functionality", () => {
 describe("Implementation Requirements", () => {
   it("should have a button with the text content 'Request Access'", async () => {
     const { getByText } = render(<AccessRequest />, {
-      wrapper: (p) => <MockParent {...p} mocks={[]} role="User" />,
+      wrapper: (p) => <MockParent {...p} mocks={[]} role="User" permissions={["access:request"]} />,
     });
 
     expect(getByText("Request Access")).toBeInTheDocument();
     expect(getByText("Request Access")).toBeEnabled();
   });
 
-  it.each<UserRole>(["User", "Submitter", "Organization Owner"])(
-    "should render the 'Request Access' button for the '%s' role",
-    (role) => {
-      const { getByTestId } = render(<AccessRequest />, {
-        wrapper: (p) => <MockParent {...p} mocks={[]} role={role} />,
-      });
-
-      expect(getByTestId("request-access-button")).toBeInTheDocument();
-    }
-  );
-
-  it.each<UserRole>([
-    "Admin",
-    "Data Commons POC",
-    "Federal Lead",
-    "Federal Monitor",
-    "Data Curator",
-    "fake role" as UserRole,
-  ])("should not render the 'Request Access' button for the '%s' role", (role) => {
+  it("should not render the 'Request Access' button without the required permission", async () => {
     const { queryByTestId } = render(<AccessRequest />, {
-      wrapper: (p) => <MockParent {...p} mocks={[]} role={role} />,
+      wrapper: (p) => <MockParent {...p} mocks={[]} role="User" permissions={[]} />,
     });
 
     expect(queryByTestId("request-access-button")).not.toBeInTheDocument();

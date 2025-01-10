@@ -36,6 +36,8 @@ const baseUser: User = {
   dataCommons: [],
   createdAt: "",
   updateAt: "",
+  permissions: ["data_submission:view"],
+  notifications: [],
 };
 
 const baseSubmissionCtx: SubmissionCtxState = {
@@ -118,20 +120,12 @@ describe("Basic Functionality", () => {
         {
           collaboratorID: "col-1",
           collaboratorName: "",
-          Organization: {
-            orgID: "",
-            orgName: "",
-          },
-          permission: "Can View",
+          permission: "Can Edit",
         },
         {
           collaboratorID: "col-2",
           collaboratorName: "",
-          Organization: {
-            orgID: "",
-            orgName: "",
-          },
-          permission: "Can View",
+          permission: "Can Edit",
         },
       ],
       studyAbbreviation: "AAAAAAAAAAAAAAAAA",
@@ -182,29 +176,17 @@ describe("Basic Functionality", () => {
         {
           collaboratorID: "1",
           collaboratorName: "",
-          Organization: {
-            orgID: "",
-            orgName: "",
-          },
-          permission: "Can View",
+          permission: "Can Edit",
         },
         {
           collaboratorID: "2",
           collaboratorName: "",
-          Organization: {
-            orgID: "",
-            orgName: "",
-          },
-          permission: "Can View",
+          permission: "Can Edit",
         },
         {
           collaboratorID: "3",
           collaboratorName: "",
-          Organization: {
-            orgID: "",
-            orgName: "",
-          },
-          permission: "Can View",
+          permission: "Can Edit",
         },
       ],
     };

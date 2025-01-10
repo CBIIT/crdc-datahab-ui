@@ -80,13 +80,14 @@ const mockUser: User = {
   lastName: "",
   email: "",
   role: "User",
-  organization: null,
   dataCommons: [],
   studies: [],
   IDP: "nih",
   userStatus: "Active",
   updateAt: "",
   createdAt: "",
+  permissions: ["access:request"],
+  notifications: [],
 };
 
 type MockParentProps = {
@@ -534,13 +535,6 @@ describe("Implementation Requirements", () => {
     const newUser: User = {
       ...mockUser,
       role: "Admin", // Technically not even able to see this dialog
-      organization: {
-        orgID: "123",
-        orgName: "NCI",
-        status: "Active",
-        createdAt: "",
-        updateAt: "",
-      },
     };
 
     const { getByTestId } = render(<FormDialog open onClose={jest.fn()} />, {

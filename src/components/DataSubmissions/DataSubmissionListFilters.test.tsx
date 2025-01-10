@@ -51,6 +51,8 @@ const TestParent: FC<ParentProps> = ({
         createdAt: "",
         updateAt: "",
         studies: null,
+        permissions: ["data_submission:create"],
+        notifications: [],
       },
     }),
     [userRole]

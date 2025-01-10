@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Status as AuthStatus, useAuthContext } from "../components/Contexts/AuthContext";
 import { Status as FormStatus, useFormContext } from "../components/Contexts/FormContext";
-import { FormMode, FormModes, getFormMode } from "../utils";
+import { FormMode, FormModes, getFormMode, Logger } from "../utils";
 
 const useFormMode = () => {
   const { user, status: authStatus } = useAuthContext();
@@ -15,10 +15,15 @@ const useFormMode = () => {
     }
 
     const updatedFormMode: FormMode = getFormMode(user, data);
+    if (updatedFormMode === FormModes.UNAUTHORIZED) {
+      Logger.error("useFormMode: User is unauthorized to view this Submission Request.", {
+        user,
+        data,
+      });
+    }
+
     setFormMode(updatedFormMode);
-    setReadOnlyInputs(
-      updatedFormMode === FormModes.VIEW_ONLY || updatedFormMode === FormModes.REVIEW
-    );
+    setReadOnlyInputs(updatedFormMode !== FormModes.EDIT);
   }, [user, data]);
 
   return { formMode, readOnlyInputs };

@@ -6,13 +6,13 @@ import { GET_DASHBOARD_URL, GetDashboardURLInput, GetDashboardURLResp } from "..
 import usePageTitle from "../../hooks/usePageTitle";
 import { Status, useAuthContext } from "../../components/Contexts/AuthContext";
 import SuspenseLoader from "../../components/SuspenseLoader";
-import { DashboardRoles } from "../../config/AuthRoles";
 import DashboardView from "./DashboardView";
+import { hasPermission } from "../../config/AuthPermissions";
 
 /**
  * Handles the logic for the OperationDashboard component.
  *
- * @returns {JSX.Element} The OperationDashboard component.
+ * @returns The DashboardController component
  */
 const DashboardController = () => {
   usePageTitle("Operation Dashboard");
@@ -21,16 +21,16 @@ const DashboardController = () => {
   const { enqueueSnackbar } = useSnackbar();
   const [searchParams] = useSearchParams({ type: "Submission" });
 
-  const canAccessPage = useMemo<boolean>(
-    () => authStatus === Status.LOADED && user?.role && DashboardRoles.includes(user.role),
-    [authStatus, user?.role]
+  const canManage = useMemo<boolean>(
+    () => authStatus === Status.LOADED && hasPermission(user, "dashboard", "view"),
+    [authStatus, user]
   );
 
   const { data, error, loading } = useQuery<GetDashboardURLResp, GetDashboardURLInput>(
     GET_DASHBOARD_URL,
     {
       variables: { type: searchParams.get("type") },
-      skip: !canAccessPage || !searchParams.get("type"),
+      skip: !canManage || !searchParams.get("type"),
       onError: (e) =>
         enqueueSnackbar(e?.message, {
           variant: "error",
@@ -43,7 +43,7 @@ const DashboardController = () => {
     return <SuspenseLoader />;
   }
 
-  if (!canAccessPage) {
+  if (!canManage) {
     return <Navigate to="/" />;
   }
 

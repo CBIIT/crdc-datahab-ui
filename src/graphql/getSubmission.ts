@@ -62,10 +62,6 @@ export const query = gql`
       collaborators {
         collaboratorID
         collaboratorName
-        Organization {
-          orgID
-          orgName
-        }
         permission
       }
       createdAt

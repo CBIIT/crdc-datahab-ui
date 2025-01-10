@@ -26,7 +26,7 @@ const baseAuthCtx: AuthContextState = {
   user: null,
 };
 
-const baseUser: User = {
+const baseUser: Omit<User, "permissions"> = {
   _id: "",
   firstName: "",
   lastName: "",
@@ -38,20 +38,27 @@ const baseUser: User = {
   dataCommons: [],
   createdAt: "",
   updateAt: "",
+  notifications: [],
 };
 
 type ParentProps = {
   children: React.ReactNode;
   mocks?: MockedResponse[];
   role?: UserRole;
+  permissions?: AuthPermissions[];
 };
 
-const TestParent: FC<ParentProps> = ({ role = "Submitter", mocks = [], children }) => {
+const TestParent: FC<ParentProps> = ({
+  role = "Submitter",
+  permissions = ["data_submission:create"],
+  mocks = [],
+  children,
+}) => {
   const authState = useMemo<AuthContextState>(
     () => ({
       ...baseAuthCtx,
       isLoggedIn: true,
-      user: { ...baseUser, role },
+      user: { ...baseUser, role, permissions },
     }),
     [role]
   );
@@ -263,19 +270,4 @@ describe("Implementation Requirements", () => {
 
     expect(mockWriteText).not.toHaveBeenCalled();
   });
-
-  it.each<UserRole>(["Admin", "Federal Lead", "Data Curator", "User", "fake user" as UserRole])(
-    "should show an error when the user role %s tries to generate a token",
-    async (role) => {
-      const { getByText } = render(<ApiTokenDialog open />, {
-        wrapper: (p) => <TestParent {...p} role={role} />,
-      });
-
-      userEvent.click(getByText(/Create Token/, { selector: "button" }));
-
-      await waitFor(() => {
-        expect(getByText(/Token was unable to be created./)).toBeInTheDocument();
-      });
-    }
-  );
 });

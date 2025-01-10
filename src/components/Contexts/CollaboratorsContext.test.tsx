@@ -20,19 +20,11 @@ const dummySubmissionData = {
         collaboratorID: "user-1",
         permission: "Can Edit",
         collaboratorName: "Smith, Alice",
-        Organization: {
-          orgID: "org-1",
-          orgName: "Org 1",
-        },
       },
       {
         collaboratorID: "user-2",
-        permission: "Can View",
+        permission: "Can Edit",
         collaboratorName: "Johnson, Bob",
-        Organization: {
-          orgID: "org-2",
-          orgName: "Org 2",
-        },
       },
     ],
   } as Submission,
@@ -51,13 +43,6 @@ const mockPotentialCollaborators: User[] = [
     _id: "user-1",
     firstName: "Alice",
     lastName: "Smith",
-    organization: {
-      orgID: "org-1",
-      orgName: "Org 1",
-      status: "Active",
-      createdAt: "",
-      updateAt: "",
-    },
     role: "User",
     email: "",
     dataCommons: [],
@@ -66,18 +51,13 @@ const mockPotentialCollaborators: User[] = [
     userStatus: "Active",
     updateAt: "",
     createdAt: "",
+    permissions: [],
+    notifications: [],
   },
   {
     _id: "user-2",
     firstName: "Bob",
     lastName: "Johnson",
-    organization: {
-      orgID: "org-2",
-      orgName: "Org 2",
-      status: "Active",
-      createdAt: "",
-      updateAt: "",
-    },
     role: "User",
     email: "",
     dataCommons: [],
@@ -86,18 +66,13 @@ const mockPotentialCollaborators: User[] = [
     userStatus: "Active",
     updateAt: "",
     createdAt: "",
+    permissions: [],
+    notifications: [],
   },
   {
     _id: "user-3",
     firstName: "Charlie",
     lastName: "Brown",
-    organization: {
-      orgID: "org-3",
-      orgName: "Org 3",
-      status: "Active",
-      createdAt: "",
-      updateAt: "",
-    },
     role: "User",
     email: "",
     dataCommons: [],
@@ -106,6 +81,8 @@ const mockPotentialCollaborators: User[] = [
     userStatus: "Active",
     updateAt: "",
     createdAt: "",
+    permissions: [],
+    notifications: [],
   },
 ];
 
@@ -548,10 +525,6 @@ describe("CollaboratorsContext", () => {
 
       expect(currentCollaborators[0].collaboratorID).toBe("user-1");
       expect(currentCollaborators[0].collaboratorName).toBe("Smith, Alice");
-      expect(currentCollaborators[0].Organization).toEqual({
-        orgID: "org-1",
-        orgName: "Org 1",
-      });
     });
   });
 
@@ -590,7 +563,6 @@ describe("CollaboratorsContext", () => {
       expect(currentCollaborators[0].collaboratorID).toBe("user-4");
       expect(currentCollaborators[0].permission).toBe("Can Edit");
       expect(currentCollaborators[0].collaboratorName).toBe("Doe, John");
-      expect(currentCollaborators[0].Organization).toBeUndefined();
     });
 
     mockSubmissionData = dummySubmissionData;
@@ -625,7 +597,6 @@ describe("CollaboratorsContext", () => {
 
       expect(currentCollaborators[0].collaboratorID).toBe("user-4");
       expect(currentCollaborators[0].collaboratorName).toBeUndefined();
-      expect(currentCollaborators[0].Organization).toBeUndefined();
     });
 
     mockSubmissionData = dummySubmissionData;
@@ -698,7 +669,6 @@ describe("CollaboratorsContext", () => {
     expect(currentCollaborators[0].collaboratorID).toBe("user-3");
     expect(currentCollaborators[0].permission).toBe("Can Edit");
     expect(currentCollaborators[0].collaboratorName).toBeUndefined();
-    expect(currentCollaborators[0].Organization).toBeUndefined();
   });
 
   it("should handle missing data in saveCollaborators", async () => {
@@ -751,10 +721,6 @@ describe("CollaboratorsContext", () => {
     expect(currentCollaborators[0].permission).toBe("Can Edit");
 
     expect(currentCollaborators[0].collaboratorName).toBe("Brown, Charlie");
-    expect(currentCollaborators[0].Organization).toEqual({
-      orgID: "org-3",
-      orgName: "Org 3",
-    });
   });
 
   it("should handle updating an existing collaborator when they're no longer a potential collaborator", async () => {
@@ -799,20 +765,19 @@ describe("CollaboratorsContext", () => {
     act(() => {
       result.current.handleUpdateCollaborator(0, {
         collaboratorID: dummySubmissionData.getSubmission.collaborators[0].collaboratorID,
-        permission: "Can View", // current permission is Can Edit
+        permission: "Can Edit",
       });
     });
 
     await waitFor(() => {
       // Verify the update propagated
-      expect(result.current.currentCollaborators[0].permission).toBe("Can View");
+      expect(result.current.currentCollaborators[0].permission).toBe("Can Edit");
     });
 
     // Verify the user's details are carried over from the existing collaborators
     expect(result.current.currentCollaborators[0].collaboratorName).toBe(
       existingCol.collaboratorName
     );
-    expect(result.current.currentCollaborators[0].Organization).toBe(existingCol.Organization);
 
     act(() => {
       result.current.handleRemoveCollaborator(0);

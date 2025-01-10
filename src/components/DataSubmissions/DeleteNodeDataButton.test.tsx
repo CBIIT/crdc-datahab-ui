@@ -71,6 +71,8 @@ const baseUser: User = {
   dataCommons: [],
   createdAt: "",
   updateAt: "",
+  permissions: ["data_submission:view", "data_submission:create"],
+  notifications: [],
 };
 
 type TestParentProps = {
@@ -269,32 +271,6 @@ describe("Basic Functionality", () => {
     expect(getByTestId("delete-node-data-button")).toBeDisabled();
   });
 
-  it("should be disabled when the collaborator does not have 'Can Edit' permissions", () => {
-    const { getByTestId } = render(
-      <TestParent
-        user={{
-          _id: "collaborator-user",
-          role: "Submitter",
-        }}
-        submission={{
-          submitterID: "some-other-user",
-          collaborators: [
-            {
-              collaboratorID: "collaborator-user",
-              collaboratorName: "",
-              Organization: null,
-              permission: "Can View",
-            },
-          ],
-        }}
-      >
-        <Button nodeType="test" selectedItems={["ID_1", "ID_2", "ID_3"]} />,
-      </TestParent>
-    );
-
-    expect(getByTestId("delete-node-data-button")).toBeDisabled();
-  });
-
   it("should be enabled when the collaborator does have 'Can Edit' permissions", () => {
     const { getByTestId } = render(
       <TestParent
@@ -308,7 +284,6 @@ describe("Basic Functionality", () => {
             {
               collaboratorID: "collaborator-user",
               collaboratorName: "",
-              Organization: null,
               permission: "Can Edit",
             },
           ],
@@ -722,27 +697,29 @@ describe("Implementation Requirements", () => {
     }
   );
 
-  it.each<User["role"]>(["Admin", "Data Curator", "Organization Owner", "Submitter"])(
-    "should be visible and interactive for the role %",
-    (role) => {
-      const { getByTestId } = render(<Button nodeType="test" selectedItems={[]} />, {
-        wrapper: (props) => <TestParent {...props} user={{ role }} />,
-      });
+  it("should be visible and interactive when the user has the required permissions", async () => {
+    const { getByTestId } = render(<Button nodeType="test" selectedItems={[]} />, {
+      wrapper: (props) => (
+        <TestParent
+          {...props}
+          user={{
+            role: "Submitter",
+            permissions: ["data_submission:view", "data_submission:create"],
+          }}
+        />
+      ),
+    });
 
-      expect(getByTestId("delete-node-data-button")).toBeVisible();
-    }
-  );
+    expect(getByTestId("delete-node-data-button")).toBeVisible();
+  });
 
-  it.each<User["role"]>(["Data Commons POC", "Federal Lead", "User", "fake role" as User["role"]])(
-    "should not be rendered for the role %s",
-    (role) => {
-      const { queryByTestId } = render(<Button nodeType="test" selectedItems={[]} />, {
-        wrapper: (props) => <TestParent {...props} user={{ role }} />,
-      });
+  it("should not be rendered when the user is missing the required permissions", async () => {
+    const { queryByTestId } = render(<Button nodeType="test" selectedItems={[]} />, {
+      wrapper: (props) => <TestParent {...props} user={{ role: "Submitter", permissions: [] }} />,
+    });
 
-      expect(queryByTestId("delete-node-data-button")).not.toBeInTheDocument();
-    }
-  );
+    expect(queryByTestId("delete-node-data-button")).not.toBeInTheDocument();
+  });
 
   it.each<SubmissionStatus>(["New", "In Progress", "Rejected", "Withdrawn"])(
     "should (implicitly) be enabled for the Submission Status %s",
