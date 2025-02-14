@@ -30,22 +30,6 @@ Start/Restart NGINX
 brew services restart nginx
 ```
 
-# React App Configuration
-
-See the provided [.env](../.env.example) file for the required environment variables. At a minimum, include:
-
-```properties
-# ... other variables
-
-REACT_APP_BACKEND_API="http://localhost:4010/api/graphql"
-
-PORT=3010
-
-# ... other variables
-```
-
-> **Note**: After modifying the .env file, you must completely restart the React app for the changes to take effect.
-
 # Deployment Architecture
 
 ## Semi-Hosted Deployment (Recommended)
