@@ -1,3 +1,7 @@
+# Overview
+
+This document provides developer documentation on the setup of Nginx for local development.
+
 # NGINX Installation For Mac
 
 Follow this guide to install and configure Nginx for usage with this project. For a understanding of the overall architecture, see the [Deployment Architecture](#deployment-architecture) section.
@@ -8,43 +12,63 @@ Install NGINX:
 brew install nginx
 ```
 
-Remove Default NGINX Configuration (Optional)
+Remove Default nginx Configuration (Optional)
 
 ```bash
 rm /usr/local/etc/nginx/nginx.conf.default
 rm /usr/local/etc/nginx/nginx.conf
 ```
 
-Clone Provided Configuration
+Clone the configuration from below
 
-```bash
-cp ./nginx.conf /usr/local/etc/nginx/
+<details>
+<summary>Sample Nginx Configuration</summary>
+
+```nginx
+worker_processes  1;
+
+events {
+    worker_connections  1024;
+}
+
+http {
+    server {
+        listen       0.0.0.0:4010;
+        server_name  localhost;
+
+        # Authn
+        location /api/authn/ {
+            # proxy_pass http://localhost:4030/api/authn/;
+            # proxy_pass "https://hub-dev.datacommons.cancer.gov/api/authn/";
+            proxy_pass "https://hub-dev2.datacommons.cancer.gov/api/authn/";
+        }
+
+        # Backend
+        location /api/graphql {
+            # proxy_pass http://localhost:4040/api/graphql;
+            # proxy_pass "https://hub-dev.datacommons.cancer.gov/api/graphql";
+            proxy_pass "https://hub-dev2.datacommons.cancer.gov/api/graphql";
+        }
+
+        # Frontend
+        location / {
+            allow all;
+            proxy_pass http://localhost:3010/;
+        }
+    }
+}
 ```
 
-> **Warning**: Do not confuse the [nginx.conf](./nginx.conf) file in this directory with the one in [conf/nginx.conf](../conf/nginx.conf). The latter is used for
-> production deployments.
+</details>
+
+> [!Warning]
+> Do not use the Nginx from [../conf/nginx.conf](../conf/nginx.conf) as it is configured for production deployments, not local development.
 
 Start/Restart NGINX
 
 ```bash
 brew services restart nginx
 ```
-
-# React App Configuration
-
-See the provided [.env](../.env.example) file for the required environment variables. At a minimum, include:
-
-```properties
-# ... other variables
-
-REACT_APP_BACKEND_API="http://localhost:4010/api/graphql"
-
-PORT=3010
-
-# ... other variables
-```
-
-> **Note**: After modifying the .env file, you must completely restart the React app for the changes to take effect.
 
 # Deployment Architecture
 
